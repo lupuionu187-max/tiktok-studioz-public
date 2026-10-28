@@ -1,0 +1,7 @@
+{
+  "_ajutor": "Copiaza acest fisier ca 'actualizare.json' si modifica. Optional.",
+  "repo": "https://github.com/UTILIZATORUL/tiktok-studioz-public.git",
+  "ramura": "main",
+  "auto": true,
+  "venv": true
+}

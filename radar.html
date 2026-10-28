@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar TikTok</title>
+<script>
+/* Conectare la motorul local (vezi ui.html). Local = neschimbat; de pe site => localhost:8765 + parola. */
+(function () {
+  "use strict";
+  var h = location.hostname;
+  var LOCAL = (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h === "" || location.protocol === "file:");
+  var MOTOR = localStorage.getItem("ts_motor") || "http://localhost:8765";
+  try { var qp = new URLSearchParams(location.search).get("motor"); if (qp) { MOTOR = qp; localStorage.setItem("ts_motor", qp); } } catch (e) {}
+  var BASE = LOCAL ? "" : MOTOR.replace(/\/+$/, "");
+  var PAROLA = localStorage.getItem("ts_parola") || "";
+  function A(u) { if (!BASE || typeof u !== "string") return u; if (u.charAt(0) === "/" && u.charAt(1) !== "/") return BASE + u; return u; }
+  window.TS = { local: LOCAL, motor: function () { return BASE || location.origin; }, url: A,
+    getParola: function () { return PAROLA; },
+    setParola: function (v) { PAROLA = v || ""; try { localStorage.setItem("ts_parola", PAROLA); } catch (e) {} },
+    setMotor: function (v) { v = (v || "").replace(/\/+$/, ""); try { localStorage.setItem("ts_motor", v); } catch (e) {} if (!LOCAL) BASE = v; } };
+  var _fetch = window.fetch ? window.fetch.bind(window) : null;
+  if (_fetch) {
+    window.fetch = function (input, init) {
+      try {
+        var url = (typeof input === "string") ? input : (input && input.url) || "";
+        var isApi = BASE && typeof url === "string" && url.indexOf("/api/") !== -1;
+        if (typeof input === "string") { input = A(input); }
+        else if (input && input.url && BASE && url.charAt(0) === "/" && url.charAt(1) !== "/") { input = new Request(A(url), input); }
+        if (isApi && PAROLA) { init = init || {}; var hd = new Headers(init.headers || (typeof input !== "string" && input.headers) || {}); hd.set("X-Parola", PAROLA); init.headers = hd; }
+      } catch (e) {}
+      return _fetch(input, init);
+    };
+  }
+  var _open = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url) { this.__ts_api = (typeof url === "string" && url.indexOf("/api/") !== -1); if (typeof url === "string") { arguments[1] = A(url); } return _open.apply(this, arguments); };
+  var _send = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function () { try { if (BASE && PAROLA && this.__ts_api) this.setRequestHeader("X-Parola", PAROLA); } catch (e) {} return _send.apply(this, arguments); };
+  if (BASE) {
+    ["HTMLImageElement", "HTMLMediaElement", "HTMLSourceElement"].forEach(function (name) {
+      var C = window[name]; if (!C) return; var d = Object.getOwnPropertyDescriptor(C.prototype, "src"); if (!d || !d.set) return;
+      Object.defineProperty(C.prototype, "src", { configurable: true, enumerable: d.enumerable, get: function () { return d.get.call(this); }, set: function (v) { d.set.call(this, A(v)); } });
+    });
+  }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #121110; --panel: #1b1917; --card: #24211e; --line: #36312c; --line-soft: rgba(255,220,190,.08);
+    --text: #f4efe9; --muted: #b8afa5; --faint: #7f766d; --accent: #ffb27d; --accent-soft: #3a2a1f;
+    --accent2: #ff7a2f; --ok: #5fd39c; --warn: #ffc24b; --bad: #ff5c7f; --bad-soft: #3d1426;
+    --onair: linear-gradient(135deg, #ff9a4d 0%, #ff7a2f 100%);
+    --radius: 14px; --fs-xs: 12px; --fs-s: 13px; --fs-m: 14px; --fs-l: 16px; --fs-xl: 20px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  h1, h2, h3, .brand { font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif; letter-spacing: -.01em; }
+  html, body { margin: 0; color: var(--text); font: var(--fs-m)/1.5 "Inter", "Segoe UI", system-ui, sans-serif; }
+  body { min-height: 100vh; background:
+      radial-gradient(1200px 800px at -10% -20%, rgba(255,178,125,.22), transparent 60%),
+      radial-gradient(900px 700px at 110% 120%, rgba(255,122,47,.14), transparent 60%), var(--bg);
+    background-attachment: fixed; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  a { color: inherit; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line);
+    background: var(--card); padding: 8px 14px; border-radius: 10px; white-space: nowrap; text-decoration: none; }
+  .btn:hover { border-color: #5a5148; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.small { padding: 5px 10px; font-size: var(--fs-s); border-radius: 8px; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .btn.primary { background: var(--onair); color: #1d0c00; border-color: transparent; font-weight: 700; }
+  .btn.ok { color: var(--ok); border-color: rgba(95,211,156,.45); background: transparent; }
+  .iconbtn { width: 30px; height: 30px; padding: 0; border-radius: 8px; }
+  .linkbtn { border: 0; background: none; padding: 2px 4px; color: var(--muted); font-size: var(--fs-s);
+    text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+  .linkbtn:hover { color: var(--text); }
+
+  header.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 24px;
+    background: rgba(18,17,16,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft); }
+  .brand { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.02em; display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; }
+  .brand::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #5a5148; }
+  body.scanning .brand::before { background: var(--ok); box-shadow: 0 0 0 4px rgba(95,211,156,.18), 0 0 12px rgba(95,211,156,.8); }
+  .status { font-size: var(--fs-s); color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status .bad { color: var(--bad); }
+  .spacer { flex: 1; }
+
+  main { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start;
+    padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; padding: 16px; } header.top { padding: 10px 16px; } }
+  @media (max-width: 640px) {
+    header.top { flex-wrap: wrap; gap: 8px 10px; }
+    header.top .status { order: 9; flex: 1 0 100%; white-space: normal; }
+    #back .long { display: none; }
+  }
+  .panel { background: rgba(30,28,26,.72); border: 1px solid var(--line-soft); border-radius: var(--radius);
+    box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 24px 60px -30px rgba(0,0,0,.7); }
+  .phead { display: flex; align-items: baseline; gap: 10px; padding: 14px 16px 10px; flex-wrap: wrap; }
+  h2 { font-size: var(--fs-l); margin: 0; font-weight: 700; }
+  .meta { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hint { font-size: var(--fs-xs); color: var(--muted); }
+  input[type=text], input[type=number], input[type=search], input[type=datetime-local], textarea, select { width: 100%;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  textarea { min-height: 90px; resize: vertical; font-size: var(--fs-s); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .pad { padding: 0 16px 14px; }
+  .label { font-size: var(--fs-s); margin: 12px 0 6px; font-weight: 600; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .seg button { border: 1px solid var(--line-soft); background: rgba(255,255,255,.02); padding: 5px 10px; border-radius: 9px;
+    font-size: var(--fs-s); }
+  .seg button[aria-pressed="true"] { background: var(--accent-soft); border-color: rgba(255,178,125,.7); font-weight: 600; }
+  .msg { font-size: var(--fs-s); margin-top: 8px; color: var(--ok); }
+  .msg.bad { color: var(--bad); }
+  details.more { border-top: 1px solid var(--line-soft); }
+  details.more > summary { cursor: pointer; padding: 10px 16px; font-size: var(--fs-s); color: var(--muted); list-style: none; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "▸ "; }
+  details.more[open] > summary::before { content: "▾ "; }
+  details.more[open] > summary { color: var(--text); }
+  .steps { margin: 6px 0 0; padding-left: 18px; font-size: var(--fs-s); color: var(--muted); }
+  .steps li { margin: 3px 0; }
+  .bm { display: inline-block; margin: 8px 0 4px; padding: 7px 12px; border-radius: 9px; border: 1px dashed var(--accent);
+    background: var(--accent-soft); color: var(--text); font-weight: 600; font-size: var(--fs-s); text-decoration: none; cursor: grab; }
+
+  .inwrap { max-width: 1500px; margin: 0 auto; padding: 18px 24px 0; }
+
+  /* status of the search: a thin line under the header (always in sight) + the bar at the top of the page */
+  .hline { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: rgba(255,178,125,.12); overflow: hidden; }
+  .hline i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+  .sbar { padding: 12px 16px 11px; }
+  .sbrow { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+  .sbmain { font-weight: 600; min-width: 0; }
+  .sbmain b { font-variant-numeric: tabular-nums; }
+  .sbright { margin-left: auto; font-size: var(--fs-s); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sbright b { color: var(--text); font-weight: 600; }
+  .sbtrack { position: relative; height: 8px; margin: 9px 0 8px; border-radius: 999px; background: rgba(255,178,125,.12); overflow: hidden; }
+  .sbtrack i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit;
+    background: linear-gradient(90deg, #ff9a5c, var(--accent)); transition: width .6s ease; }
+  .sbar.run .sbtrack i::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: sbsheen 1.6s linear infinite; }
+  @keyframes sbsheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  .sbar.done .sbtrack i { background: var(--ok); opacity: .75; }
+  .sbar.bad .sbmain { color: var(--bad); }
+  .sbsub { font-size: var(--fs-s); color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 0; }
+  .sbsub > span:not(:last-child)::after { content: "·"; margin: 0 8px; color: var(--faint); }
+  .sbsub .hot { color: var(--ok); } .sbsub .warn { color: var(--warn); }
+  @media (prefers-reduced-motion: reduce) { .sbar.run .sbtrack i::after { animation: none; } .sbtrack i, .hline i { transition: none; } }
+  .hotbox { padding: 12px 16px; border-color: rgba(255,122,47,.55); background: linear-gradient(180deg, rgba(255,122,47,.14), rgba(30,28,26,.72)); }
+  .hothead { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+  .hottitle { font-weight: 700; }
+  .hotlist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .hotlist li { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 7px 0; border-top: 1px solid var(--line-soft); font-size: var(--fs-s); }
+  .hotlist .who { font-weight: 700; }
+  .hotlist .rate { color: var(--accent2); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hotlist .meta2 { color: var(--muted); }
+  .hotlist .act { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .badge.hotb { background: var(--accent2); color: #1d0c00; }
+  .hotrow { margin-top: 8px; }
+  @media (max-width: 980px) { .inwrap { padding: 14px 16px 0; } }
+  .incoming { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-radius: var(--radius); border: 1px solid rgba(255,178,125,.65); background: var(--accent-soft); }
+  .incoming.bad { border-color: rgba(255,92,127,.6); background: var(--bad-soft); }
+  .intext { min-width: 0; flex: 1 1 380px; }
+  .intext .hint { margin-top: 4px; }
+  .sections { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--line-soft); }
+  .chip { border: 1px solid var(--line); background: var(--card); padding: 4px 11px; border-radius: 999px; font-size: var(--fs-s); }
+  .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .chip .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .syncinfo { padding: 0 16px 10px; font-size: var(--fs-xs); color: var(--muted); display: flex; gap: 4px 10px; align-items: baseline; flex-wrap: wrap; }
+  .syncinfo b { color: var(--text); }
+  ul.accs { list-style: none; margin: 0; padding: 0 0 6px; max-height: 52vh; overflow: auto; border-top: 1px solid var(--line-soft); }
+  li.acc { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 6px; align-items: center; padding: 8px 16px;
+    border-bottom: 1px solid var(--line-soft); }
+  .aname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+  .aname:hover { text-decoration: underline; }
+  .asub { grid-column: 1 / -1; font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asub.bad { color: var(--bad); white-space: normal; }
+  .asub.now { color: var(--ok); }
+  .accfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 16px 12px; }
+  .accfoot .linkbtn { white-space: nowrap; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; padding: 0 16px 12px; }
+  .filters.more { border-top: 1px dashed var(--line-soft); padding-top: 12px; }
+  .filters.checks { align-items: center; gap: 6px 16px; padding-top: 0; }
+  .filters .f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .filters .f > span:first-child { font-size: var(--fs-xs); color: var(--muted); }
+  .filters select, .filters input { height: 34px; box-sizing: border-box; }
+  .filters select { width: auto; min-width: 140px; max-width: 100%; padding: 4px 8px; }
+  .filters .num input { width: 120px; padding: 4px 9px; }
+  .filters .grow { flex: 1 1 220px; }
+  .filters .grow input { padding: 4px 10px; }
+  .filters input[type=datetime-local] { width: auto; padding: 4px 8px; }
+  .filters .hours { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+  .filters .hours select { min-width: 0; width: 92px; }
+  .filters input.invalid { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad) inset; }
+  #moreBtn[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  #moreBtn .n { margin-left: 2px; color: var(--accent2); font-weight: 700; }
+  .check { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-s); color: var(--muted); padding-bottom: 6px; }
+  .filters.checks .check { padding-bottom: 0; }
+  .more-rows { padding: 12px 16px 16px; color: var(--muted); font-size: var(--fs-s); text-align: center; }
+
+  ul.vids { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-soft); }
+  li.vid { display: grid; grid-template-columns: 22px 60px minmax(0, 1fr) auto auto; grid-template-areas: "pick thumb main stats act";
+    gap: 14px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line-soft); }
+  li.vid > .pick { grid-area: pick; } li.vid > .tlink { grid-area: thumb; } li.vid > .vmain { grid-area: main; }
+  li.vid > .stats { grid-area: stats; } li.vid > .vact { grid-area: act; }
+  li.vid.isnew { background: linear-gradient(90deg, rgba(95,211,156,.08), transparent 60%); }
+  li.vid.sel { background: linear-gradient(90deg, rgba(255,178,125,.16), rgba(255,178,125,.05)); }
+  li.vid.ishidden { opacity: .55; }
+  .pick { display: grid; place-items: center; }
+  .pick input { width: 18px; height: 18px; margin: 0; accent-color: #ff7a2f; cursor: pointer; }
+  .rank { font-weight: 800; color: var(--accent2); font-variant-numeric: tabular-nums; }
+  .why { display: flex; flex-wrap: wrap; gap: 4px; }
+  .why span { font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--text); white-space: nowrap; }
+  .viewseg { margin-left: 4px; }
+  .bestbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; padding: 2px 16px 12px; }
+  .bestbar .f { display: flex; flex-direction: column; gap: 4px; }
+  .bestbar .f > span { font-size: var(--fs-xs); color: var(--muted); }
+  .bestbar select { width: auto; min-width: 90px; height: 34px; padding: 4px 8px; }
+  .bestbar .check { padding-bottom: 8px; }
+  .besthint { flex: 1 1 100%; }
+  .selbar { position: sticky; top: 57px; z-index: 6; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+    padding: 9px 16px; background: rgba(30,28,26,.97); border-top: 1px solid var(--line-soft); backdrop-filter: blur(8px); }
+  .selbar .check { padding-bottom: 0; }
+  .selmsg { margin: 0; padding: 0 16px 10px; }
+  .dlstat { font-size: var(--fs-xs); color: var(--ok); white-space: nowrap; }
+  .accstats { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line-soft); }
+  .chip.okc .n { color: var(--ok); } .chip.badc .n { color: var(--warn); }
+  .asub.warn { color: var(--warn); white-space: normal; }
+  .thumb { width: 60px; height: 80px; border-radius: 8px; object-fit: cover; background: #171513; display: block; }
+  .vmain { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .vtop { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-s); flex-wrap: wrap; }
+  .vtop .who { font-weight: 700; }
+  .vtop .when { color: var(--text); }
+  .vtop .ago { color: var(--muted); font-size: var(--fs-xs); }
+  .badge { font-size: 10.5px; font-weight: 800; letter-spacing: .4px; padding: 1px 6px; border-radius: 5px; background: var(--ok); color: #062b20; }
+  .desc { font-size: var(--fs-s); color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .stats { display: grid; grid-template-columns: repeat(6, minmax(58px, auto)); gap: 2px 12px; text-align: right; }
+  .stat b { display: block; font-size: var(--fs-m); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: var(--fs-xs); color: var(--muted); }
+  .stat.hot b { color: var(--accent2); }
+  .vact { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 132px; }
+  .dlmsg { font-size: var(--fs-xs); color: var(--muted); text-align: center; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dlmsg.bad { color: var(--bad); white-space: normal; }
+  .empty { padding: 30px 16px; color: var(--muted); text-align: center; }
+  @media (max-width: 1180px) {
+    li.vid { grid-template-columns: 22px 60px minmax(0, 1fr) auto; grid-template-areas: "pick thumb main act" "pick thumb stats act"; }
+    .stats { justify-content: start; text-align: left; grid-template-columns: repeat(6, auto); }
+  }
+  @media (max-width: 640px) {
+    li.vid { grid-template-columns: 22px 52px minmax(0, 1fr); grid-template-areas: "pick thumb main" "stats stats stats" "act act act"; }
+    .thumb { width: 52px; height: 70px; }
+    .stats { grid-template-columns: repeat(3, auto); }
+    .vact { flex-direction: row; }
+    .selbar { top: 0; position: static; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Radar TikTok</div>
+  <span class="status" id="status" aria-live="polite">Mă conectez…</span>
+  <span class="spacer"></span>
+  <span class="dlstat" id="dlStat" hidden></span>
+  <button class="btn small" id="openClips" title="Deschide folderul cu clipurile de dublat">Folderul clipuri</button>
+  <button class="btn small" id="checkAll">Verifică toate acum</button>
+  <button class="btn ghost" id="back" aria-label="Înapoi la dublare">← Înapoi<span class="long"> la dublare</span></button>
+  <div class="hline" id="hLine" hidden aria-hidden="true"><i></i></div>
+</header>
+
+<div class="inwrap" id="sbWrap" hidden>
+  <section class="panel sbar" id="sbar" aria-label="Căutarea de clipuri">
+    <div class="sbrow"><span class="sbmain" id="sbMain" aria-live="polite"></span><span class="sbright" id="sbRight"></span></div>
+    <div class="sbtrack" id="sbTrack" role="progressbar" aria-label="Conturi verificate" aria-valuemin="0" aria-valuemax="100"><i id="sbFill"></i></div>
+    <div class="sbsub" id="sbSub"></div>
+  </section>
+</div>
+
+<div class="inwrap" id="oldApp" hidden>
+  <div class="incoming bad" role="alert">
+    <div class="intext">Programul de dublare rulează încă varianta veche, așa că unele butoane din Radar nu merg.
+      Închide fereastra neagră a programului și pornește din nou <b>Porneste dublarea.bat</b>.</div>
+  </div>
+</div>
+
+<div class="inwrap" id="hotWrap" hidden>
+  <section class="panel hotbox" aria-label="Clipuri care explodează">
+    <div class="hothead"><span class="hottitle" id="hotTitle" aria-live="polite"></span><span class="spacer"></span>
+      <button class="btn small" id="hotShow">Arată-le în listă</button>
+      <button class="btn small ghost" id="hotSeen">Am văzut</button></div>
+    <ul class="hotlist" id="hotList"></ul>
+  </section>
+</div>
+
+<div class="inwrap" id="incoming" hidden>
+  <div class="incoming" role="region" aria-label="Listă primită de pe TikTok">
+    <div class="intext" id="inText" aria-live="polite"></div>
+    <div class="row">
+      <button class="btn primary" id="inYes">Sincronizează</button>
+      <button class="btn ghost" id="inNo">Renunță</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- ======================== CONTURI ======================== -->
+  <section class="panel" aria-label="Conturi urmărite">
+    <div class="phead"><h2>Conturi</h2><span class="meta" id="accCount"></span></div>
+    <div class="pad">
+      <div class="row">
+        <input type="text" id="addInput" placeholder="@cont sau link TikTok" autocomplete="off">
+        <button class="btn" id="addBtn">Adaugă</button>
+      </div>
+      <div class="msg" id="addMsg" hidden></div>
+    </div>
+
+    <details class="more" id="importBox">
+      <summary>Ia toate conturile pe care le urmărești</summary>
+      <div class="pad">
+        <div class="label">Butonul „Urmăririle mele → Radar”</div>
+        <ol class="steps">
+          <li>Trage butonul de mai jos în bara de favorite a browserului (o singură dată). Nu vezi bara? Apasă Ctrl+Shift+B.</li>
+          <li>Pe TikTok, în browser, logat pe contul tău: deschide profilul tău.</li>
+          <li>Apasă butonul din favorite. Ia singur toată lista de la TikTok (la 600 de conturi durează cam 20 de secunde); la final apasă <b>Trimite în Radar</b>.</li>
+          <li>Se deschide Radarul într-o filă nouă: vezi câte conturi intră și câte ies, apoi apeși <b>Sincronizează</b>. Conturile ajung într-o secțiune cu numele profilului.</li>
+          <li>Repetă oricând: secțiunea devine exact lista de acum (conturile noi intră, cele pe care nu le mai urmărești ies).</li>
+        </ol>
+        <a class="bm" id="bookmarklet" href="#" title="Trage-l în bara de favorite">Urmăririle mele → Radar</a>
+        <div class="hint">Nu merge tras? <button class="linkbtn" id="bmCopy">Copiază butonul</button> și fă singur un favorit: click dreapta pe bara de favorite → Adaugă pagină → la URL lipești.</div>
+        <div class="hint" id="bmOther"></div>
+        <div class="msg" id="bmMsg" hidden></div>
+        <div class="label">Sau lipește o listă de conturi</div>
+        <textarea id="bulkInput" placeholder="@cont1&#10;@cont2&#10;https://www.tiktok.com/@cont3"></textarea>
+        <div class="row" style="margin-top:8px"><input type="text" id="bulkSource" placeholder="din ce profil sunt (opțional, ex. @contul.meu)"></div>
+        <label class="check" style="margin-top:6px"><input type="checkbox" id="bulkReplace"> înlocuiește lista acelui profil (scoate ce nu mai e în listă; îți arăt întâi ce iese)</label>
+        <div class="row" style="margin-top:8px"><button class="btn" id="bulkBtn">Adaugă</button></div>
+        <div class="label">Sau din datele tale TikTok (oficial)</div>
+        <ol class="steps">
+          <li>În aplicația TikTok: Profil → ☰ → Setări și confidențialitate → Cont → <b>Descarcă-ți datele</b>.</li>
+          <li>Alege formatul <b>JSON</b> și cere datele. TikTok le pregătește în câteva ore, uneori 1–4 zile.</li>
+          <li>Descarcă fișierul .zip primit și alege-l aici:</li>
+        </ol>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="importBtn">Alege fișierul (.zip / .json)</button>
+          <input type="file" id="importFile" accept=".zip,.json,.txt" hidden>
+        </div>
+        <div class="msg" id="importMsg" hidden></div>
+      </div>
+    </details>
+
+    <details class="more" id="optBox">
+      <summary>Cât de des verifică</summary>
+      <div class="pad">
+        <div class="label">Verifică fiecare cont la</div>
+        <div class="seg" id="segInterval"></div>
+        <div class="label">Câte clipuri recente pe cont</div>
+        <div class="seg" id="segPer"></div>
+        <div class="label">Câte conturi verifică deodată</div>
+        <div class="seg" id="segWorkers"></div>
+        <div id="onlyNewRow" hidden>
+          <div class="label">Când adaug conturi noi</div>
+          <label class="check"><input type="checkbox" id="onlyNew"> le verific doar pe ele: celelalte, dacă au fost
+            verificate în ultimele <span id="holdH">6</span> ore, nu le verific din nou până atunci</label>
+        </div>
+        <div class="label">Alertă când un clip trece de (vizualizări pe oră)</div>
+        <div class="seg" id="segHot"></div>
+        <div class="hotrow"><button class="btn small" id="hotTest">Încearcă notificarea</button></div>
+        <div class="msg" id="hotMsg" hidden></div>
+        <div class="hint" id="roundHint" style="margin-top:8px"></div>
+      </div>
+    </details>
+
+    <div class="sections" id="sections" role="group" aria-label="Secțiuni"></div>
+    <div class="syncinfo" id="syncInfo" hidden></div>
+    <div class="accstats" id="accStats" role="group" aria-label="Conturi după stare" hidden></div>
+    <ul class="accs" id="accs"></ul>
+    <div class="accfoot"><span class="hint" id="accHint"></span><button class="linkbtn" id="removeAll" hidden>Scoate toate</button></div>
+  </section>
+
+  <!-- ======================== CLIPURI ======================== -->
+  <section class="panel" aria-label="Clipuri">
+    <div class="phead">
+      <h2>Clipuri</h2>
+      <div class="seg viewseg" id="viewSeg" role="group" aria-label="Ce clipuri arăt">
+        <button data-view="all" aria-pressed="true">Toate</button>
+        <button data-view="best" aria-pressed="false">Cele mai bune</button>
+      </div>
+      <span class="meta" id="vidCount"></span>
+    </div>
+    <div class="bestbar" id="bestBar" hidden>
+      <label class="f"><span>Câte clipuri</span>
+        <select id="bestN">
+          <option value="30">30</option><option value="40">40</option><option value="50">50</option>
+          <option value="55">55</option><option value="60" selected>60</option><option value="80">80</option>
+          <option value="100">100</option>
+        </select></label>
+      <label class="f"><span>Maxim de la un cont</span>
+        <select id="bestCap">
+          <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+          <option value="5">5</option><option value="0">oricâte</option>
+        </select></label>
+      <label class="check"><input type="checkbox" id="bestSkipDl" checked> fără cele deja descărcate</label>
+      <button class="btn primary" id="bestDl" disabled>Descarcă-le pe toate</button>
+      <div class="hint besthint">Le aleg după cât de repede cresc (40%), vizualizări (30%), like-uri, comentarii, distribuiri și salvări la 100 de vizualizări (20%) și cât de noi sunt (10%). Țin cont și de filtrele de mai jos.</div>
+    </div>
+    <div class="filters">
+      <label class="f"><span>Postate în</span>
+        <select id="fPeriod">
+          <option value="1">ultima oră</option>
+          <option value="3">ultimele 3 ore</option>
+          <option value="6">ultimele 6 ore</option>
+          <option value="12">ultimele 12 ore</option>
+          <option value="24" selected>ultimele 24 de ore</option>
+          <option value="custom">între două ore…</option>
+        </select></label>
+      <label class="f" data-custom hidden><span>de la</span><input type="datetime-local" id="fFrom"></label>
+      <label class="f" data-custom hidden><span>până la</span><input type="datetime-local" id="fTo"></label>
+      <label class="f"><span>Ordine</span>
+        <select id="fSort">
+          <option value="new">cele mai noi</option>
+          <option value="old">cele mai vechi</option>
+          <option value="views">cele mai multe vizualizări</option>
+          <option value="rate">cresc cel mai repede (viz./oră)</option>
+          <option value="likes">cele mai multe like-uri</option>
+          <option value="comments">cele mai multe comentarii</option>
+          <option value="shares">cele mai multe distribuiri</option>
+          <option value="saves">cele mai multe salvări</option>
+          <option value="eng">cele mai apreciate (like-uri / viz.)</option>
+          <option value="long">cele mai lungi</option>
+          <option value="short">cele mai scurte</option>
+        </select></label>
+      <label class="f"><span>Cont</span><select id="fAcc"><option value="">toate conturile</option></select></label>
+      <label class="f num"><span>Vizualizări minim</span><input type="text" inputmode="decimal" id="fVmin" placeholder="ex. 100k" autocomplete="off"></label>
+      <button class="btn small" id="moreBtn" aria-expanded="false" aria-controls="moreFilters">Mai multe filtre</button>
+    </div>
+    <div class="filters more" id="moreFilters" hidden>
+      <label class="f num"><span>Vizualizări maxim</span><input type="text" inputmode="decimal" id="fVmax" placeholder="oricâte" autocomplete="off"></label>
+      <label class="f num"><span>Like-uri minim</span><input type="text" inputmode="decimal" id="fLmin" placeholder="ex. 5k" autocomplete="off"></label>
+      <label class="f num"><span>Comentarii minim</span><input type="text" inputmode="decimal" id="fCmin" placeholder="ex. 200" autocomplete="off"></label>
+      <label class="f num"><span>Distribuiri minim</span><input type="text" inputmode="decimal" id="fSmin" placeholder="ex. 1k" autocomplete="off"></label>
+      <label class="f num"><span>Salvări minim</span><input type="text" inputmode="decimal" id="fSvmin" placeholder="ex. 1k" autocomplete="off"></label>
+      <label class="f num"><span>Viz. pe oră minim</span><input type="text" inputmode="decimal" id="fRmin" placeholder="ex. 10k" autocomplete="off"></label>
+      <label class="f num"><span>Like-uri la 100 viz.</span><input type="text" inputmode="decimal" id="fEmin" placeholder="ex. 5" autocomplete="off"></label>
+      <label class="f"><span>Durată</span>
+        <select id="fDur">
+          <option value="">oricât</option>
+          <option value="0-15">sub 15 secunde</option>
+          <option value="0-30">sub 30 de secunde</option>
+          <option value="0-60">sub 1 minut</option>
+          <option value="30-60">între 30 s și 1 min</option>
+          <option value="60-180">între 1 și 3 minute</option>
+          <option value="60-">peste 1 minut</option>
+          <option value="180-">peste 3 minute</option>
+          <option value="600-">peste 10 minute</option>
+        </select></label>
+      <div class="f" role="group" aria-labelledby="lblHours"><span id="lblHours">Ora postării</span>
+        <span class="hours"><select id="fH1" aria-label="de la ora"></select><span aria-hidden="true">–</span><select id="fH2" aria-label="până la ora"></select></span></div>
+      <label class="f grow"><span>Caută în descriere sau în nume</span><input type="search" id="fText" placeholder="ex. #film, poveste, @cont" autocomplete="off"></label>
+    </div>
+    <div class="filters checks">
+      <label class="check"><input type="checkbox" id="fNew"> doar cele noi</label>
+      <label class="check"><input type="checkbox" id="fHot"> doar cele care explodează</label>
+      <label class="check"><input type="checkbox" id="fNotDl"> doar nedescărcate</label>
+      <label class="check"><input type="checkbox" id="fHidden"> arată și cele ascunse</label>
+      <span class="spacer"></span>
+      <button class="linkbtn" id="seenAll" title="Scoate eticheta NOU de pe toate clipurile">Marchează toate văzute</button>
+      <button class="linkbtn" id="resetF" hidden>Resetează filtrele</button>
+    </div>
+    <div class="selbar" id="selBar">
+      <label class="check"><input type="checkbox" id="selAll"> selectează tot ce e afișat</label>
+      <span class="meta" id="selCount"></span>
+      <span class="spacer"></span>
+      <button class="btn small primary" id="selDl" disabled>Descarcă selectate</button>
+      <button class="btn small" id="selHide" disabled>Ascunde</button>
+      <button class="btn small" id="selCopy" disabled>Copiază linkurile</button>
+      <button class="linkbtn" id="selNone" hidden>Deselectează</button>
+    </div>
+    <div class="msg selmsg" id="selMsg" hidden></div>
+    <ul class="vids" id="vids"></ul>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const RADAR_VERSION = "2026-10-05a";       // must match VERSION in dublare_ui.py
+let S = null;
+let SECTION = "";                  // "" = all, "manual" = added by me, else the source profile
+try { SECTION = localStorage.getItem("radarSection") || ""; } catch (e) {}
+function setSection(v) { SECTION = v; try { localStorage.setItem("radarSection", v); } catch (e) {} render(); }
+function inSection(sources) { return !SECTION || (sources || []).includes(SECTION); }
+function secName(src) { return src === "manual" ? "adăugate de mine" : "@" + src; }
+const nf1 = new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 1 });
+function big(n) {
+  if (n == null) return "–";
+  if (n >= 1e6) return nf1.format(n / 1e6) + "M";
+  if (n >= 1e4) return Math.round(n / 1e3) + "K";
+  if (n >= 1e3) return nf1.format(n / 1e3) + "K";
+  return String(n);
+}
+const dtf = new Intl.DateTimeFormat("ro-RO", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+function when(ts) { return ts ? dtf.format(new Date(ts * 1000)) : "–"; }
+function ago(ts, now) {
+  if (!ts) return "";
+  const s = Math.max(0, (now || Date.now() / 1000) - ts);
+  if (s < 3600) return "acum " + Math.max(1, Math.round(s / 60)) + " min";
+  if (s < 86400) return "acum " + Math.round(s / 3600) + " h";
+  const d = Math.round(s / 86400);
+  return "acum " + d + (d === 1 ? " zi" : " zile");
+}
+function dur(s) { if (!s) return ""; return Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0"); }
+function esc(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+async function post(body) {
+  try {
+    const r = await fetch("/api/radar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return await r.json();
+  } catch (e) { return { ok: false, error: "Programul de dublare nu răspunde. Pornește-l din nou cu Porneste dublarea.bat." }; }
+}
+async function api(body) {
+  const j = await post(body);
+  await refresh(true);
+  return j;
+}
+function flash(el, text, bad) { el.textContent = text; el.classList.toggle("bad", !!bad); el.hidden = !text; }
+
+// ---------------- render
+function busyList() { return Array.isArray(S.busy) ? S.busy : (S.busy ? [S.busy] : []); }
+function isBusy(u) { const l = (u || "").toLowerCase(); return busyList().some(b => b.toLowerCase() === l); }
+const hmf = new Intl.DateTimeFormat("ro-RO", { hour: "2-digit", minute: "2-digit" });
+function hm(ts) { return ts ? hmf.format(new Date(ts * 1000)) : ""; }
+
+// how far the search is: from the server (radar.py 2026-10-05+), else worked out from the accounts of the last full refresh
+function progress() {
+  if (S.progress) return S.progress;
+  const now = S.now || Date.now() / 1000, accs = S.accounts || [];
+  let left = 0, errors = 0, next = null;
+  for (const a of accs) {
+    if (a.error) errors++;
+    if (a.queued || !a.last_check || (a.next || 0) <= now) left++;
+    else if (!next || a.next < next.at) next = { at: a.next, user: a.user };
+  }
+  let eta = null;
+  if (left) {
+    const recent = accs.filter(a => a.last_check > now - 600).length;
+    const rate = recent >= 4 ? recent / 600 : (S.workers || 2) / 4.5;
+    eta = now + left / rate;
+  }
+  const newHour = (S.videos || []).filter(v => v.new && v.first_seen > now - 3600).length;
+  return { total: accs.length, left, errors, eta, next, new_hour: newHour };
+}
+// Romanian: "20 de conturi", "101 conturi", "120 de conturi"
+function de(n) { const r = n % 100; return n >= 20 && (r === 0 || r >= 20) ? "de " : ""; }
+function plural(n, one, many) { return n === 1 ? one : `${n} ${de(n)}${many}`; }
+// how far the search is. "Only the new accounts" (radar.py 2026-10-11+): while the accounts just added are checked,
+// the others (checked shortly before) wait, so the count is the new ones; otherwise all accounts, minus any that wait.
+function batchOn(P) { return !!(P.held && P.batch_total && P.batch_left > 0); }
+function counts(P) {
+  if (batchOn(P)) return { done: P.batch_total - P.batch_left, of: P.batch_total };
+  const of = P.total - (P.held || 0);
+  return { done: Math.max(0, of - P.left), of };
+}
+function renderStatus() {
+  const t = S.tool || {}, st = $("status"), busy = busyList();
+  document.body.classList.toggle("scanning", busy.length > 0);
+  const n = S.accounts.length, P = progress();
+  const { done, of } = counts(P), pct = of > 0 ? Math.floor(done * 100 / of) : 0;
+  let txt;
+  if (t.state === "installing") txt = esc(t.msg || "pregătesc yt-dlp…");
+  else if (t.state === "error") txt = "<span class='bad'>" + esc(t.msg || "yt-dlp nu merge") + "</span>";
+  else if (!n) txt = "Adaugă conturile de urmărit, în stânga.";
+  else txt = `${n} conturi · verific fiecare cont la ${S.interval_h} h` +
+    (P.left ? ` · caut clipuri noi: <span class="tnum">${pct}%</span>` : t.version ? ` · yt-dlp ${esc(t.version)}` : "");
+  st.innerHTML = txt;
+  renderBar(P, done, pct, busy, t);
+  const d = S.dl || {}, q = d.queued || 0, r = d.running || 0;
+  $("dlStat").hidden = !(q || r);
+  $("dlStat").innerHTML = (q || r) ? `descarc ${r}` + (q ? ` · ${q} în coadă <button class="linkbtn" id="dlCancel">oprește coada</button>` : "") : "";
+}
+
+function renderBar(P, done, pct, busy, t) {
+  const wrap = $("sbWrap"), bar = $("sbar"), hl = $("hLine");
+  const show = P.total > 0;
+  wrap.hidden = !show; hl.hidden = !show || !P.left;
+  if (!show) return;
+  const searching = P.left > 0, toolBad = t.state === "error", toolPrep = t.state === "installing";
+  bar.classList.toggle("run", searching && busy.length > 0 && !toolBad);
+  bar.classList.toggle("done", !searching && !toolBad);
+  bar.classList.toggle("bad", toolBad);
+  let main, right = "";
+  const held = P.held || 0, of = counts(P).of;
+  if (toolBad) main = "Căutarea e oprită: " + esc(t.msg || "yt-dlp nu merge");
+  else if (toolPrep) main = "Pregătesc yt-dlp, apoi caut clipuri noi…";
+  else if (searching && batchOn(P)) {
+    main = `Verific doar conturile noi: <b>${done}</b> din <b>${of}</b>`;
+    right = `<b>${pct}%</b>` + (P.eta ? ` · gata pe la ~<b>${hm(P.eta)}</b>` : "");
+  } else if (searching) {
+    main = `Caut clipuri noi: <b>${done}</b> din <b>${of}</b> ${de(of)}conturi verificate`;
+    right = `<b>${pct}%</b>` + (P.eta ? ` · gata pe la ~<b>${hm(P.eta)}</b>` : "");
+  } else if (held) {
+    main = "La zi: conturile noi sunt verificate";
+    if (P.next) right = `următoarea verificare la <b>${hm(P.next.at)}</b>`;
+  } else {
+    main = P.total === 1 ? `La zi: contul e verificat în ultimele ${S.interval_h} h`
+      : `La zi: toate cele <b>${P.total}</b> ${de(P.total)}conturi sunt verificate în ultimele ${S.interval_h} h`;
+    if (P.next) right = `următoarea verificare la <b>${hm(P.next.at)}</b>`;
+  }
+  const sub = [];
+  if (searching && busy.length && !toolBad) sub.push("acum " + busy.map(b => "@" + esc(b)).join(", "));
+  else if (searching && !toolBad && !toolPrep) sub.push(`${plural(P.left, "un cont", "conturi")} așteaptă, pornesc imediat`);
+  if (held && !toolBad)
+    sub.push(`celelalte ${held === 1 ? "un cont" : `${held} ${de(held)}conturi`}, verificate de curând, reiau pe la ` +
+             `<b>${hm(P.hold_end)}</b> <button class="linkbtn" id="holdOff">verifică-le și pe ele acum</button>`);
+  sub.push(P.new_hour ? `<span class="hot">${plural(P.new_hour, "un clip nou", "clipuri noi")} în ultima oră</span>` : "niciun clip nou în ultima oră");
+  if (P.errors) sub.push(`<span class="warn">${plural(P.errors, "un cont", "conturi")} cu probleme</span>`);
+  const d = S.dl || {};
+  if (d.running || d.queued) sub.push(`descarc ${d.running || 0}` + (d.queued ? `, ${d.queued} în coadă` : ""));
+  const pv = searching ? pct : 100;
+  $("sbMain").innerHTML = main;
+  $("sbRight").innerHTML = right;
+  $("sbSub").innerHTML = sub.map(x => `<span>${x}</span>`).join("");
+  $("sbFill").style.width = pv + "%";
+  $("sbTrack").setAttribute("aria-valuenow", String(pv));
+  $("sbTrack").setAttribute("aria-valuetext", searching ? `${done} din ${of} ${de(of)}conturi verificate` : "toate conturile verificate");
+  hl.querySelector("i").style.width = pct + "%";
+}
+
+// ---------------- clips that explode: the box, a short sound (after a first click on the page), the tab title
+let AC = null, HEARD = null;
+function audioReady() {
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume(); } catch (e) {}
+}
+document.addEventListener("pointerdown", audioReady, true);
+document.addEventListener("keydown", audioReady, true);
+function chime() {
+  window.__radarChimes = (window.__radarChimes || 0) + 1;
+  if (!AC || AC.state !== "running") return;
+  const t = AC.currentTime;
+  [[880, 0], [1320, 0.16]].forEach(([f, d]) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t + d);
+    g.gain.exponentialRampToValueAtTime(0.25, t + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.35);
+    o.connect(g).connect(AC.destination); o.start(t + d); o.stop(t + d + 0.4);
+  });
+}
+function hotUnseen() {
+  return (S.videos || []).filter(v => v.hot_at && v.hot_at > (S.hot_seen_at || 0) && !v.hidden)
+    .sort((a, b) => rateOf(b) - rateOf(a));
+}
+function renderHot() {
+  const list = S.hot_per_hour ? hotUnseen() : [];
+  const latest = list.reduce((m, v) => Math.max(m, v.hot_at), 0);
+  if (HEARD === null) HEARD = latest;                       // (no sound for what was there when the page opened)
+  else if (latest > HEARD) { HEARD = latest; chime(); }
+  document.title = list.length ? `(${list.length}) Radar TikTok · explodează` : "Radar TikTok";
+  $("hotWrap").hidden = !list.length;
+  if (!list.length) return;
+  $("hotTitle").textContent = (list.length === 1 ? "Un clip explodează acum" : `${list.length} ${de(list.length)}clipuri explodează acum`) +
+    ` (peste ${big(S.hot_per_hour)} vizualizări pe oră)`;
+  $("hotList").innerHTML = list.slice(0, 6).map(v => {
+    const dl = v.dl || {};
+    const act = isDl(v) ? `<span class="meta2">În clipuri ✓</span>`
+      : isBusyDl(v) ? `<span class="meta2">${dl.state === "running" ? "Se descarcă…" : "În coadă…"}</span>`
+      : `<button class="btn small primary" data-hdl="${esc(v.id)}">Descarcă pentru dublat</button>`;
+    return `<li><span class="who">@${esc(v.user)}</span><span class="rate">${big(rateOf(v))} viz./oră</span>` +
+      `<span class="meta2">${big(v.views)} vizualizări · ${esc(ago(v.ts, S.now))}${v.dur ? " · " + dur(v.dur) : ""}</span>` +
+      `<span class="act">${act}<a class="linkbtn" href="${esc(v.url)}" target="_blank" rel="noopener">Deschide</a></span></li>`;
+  }).join("") + (list.length > 6 ? `<li class="meta2">și încă ${list.length - 6}; le vezi pe toate cu „Arată-le în listă”.</li>` : "");
+}
+
+function renderSections() {
+  const secs = S.sections || [];
+  if (SECTION && !secs.some(x => x.source === SECTION)) SECTION = "";
+  $("sections").hidden = secs.length < 1 || (secs.length === 1 && secs[0].source === "manual");
+  $("sections").innerHTML = `<button class="chip" data-sec="" aria-pressed="${!SECTION}">toate<span class="n">${S.accounts.length}</span></button>` +
+    secs.map(x => `<button class="chip" data-sec="${esc(x.source)}" aria-pressed="${x.source === SECTION}">${esc(secName(x.source))}<span class="n">${x.count}</span></button>`).join("");
+  const cur = secs.find(x => x.source === SECTION), sy = cur && cur.sync, info = $("syncInfo");
+  if (cur && cur.source !== "manual") {
+    info.hidden = false;
+    info.innerHTML = `<span>` + (sy ? `sincronizat ${esc(ago(sy.time, S.now))}: <b>${sy.total}</b> conturi urmărite · <b>${sy.added}</b> noi · <b>${sy.removed}</b> scoase`
+                         : "adăugate dintr-o listă") +
+      `</span><button class="linkbtn" id="dropSection">scoate secțiunea</button>`;
+  } else info.hidden = true;
+}
+
+let ACCF = "";      // accounts shown: "" all, "ok", "err", "wait"
+function accState(a) {
+  if (isBusy(a.user)) return "now";
+  if (!a.last_check || a.queued) return "wait";
+  return a.error ? "err" : "ok";
+}
+let DAY_N = {};                    // account -> its clips of the last 24 h (what the list can show)
+function renderAccounts() {
+  DAY_N = {};
+  for (const v of S.videos || []) { const u = (v.user || "").toLowerCase(); DAY_N[u] = (DAY_N[u] || 0) + 1; }
+  const ul = $("accs");
+  $("accCount").textContent = S.accounts.length ? S.accounts.length + (S.accounts.length === 1 ? " cont" : " conturi") : "";
+  $("removeAll").hidden = S.accounts.length < 2 || !!SECTION;
+  const inSec = S.accounts.filter(a => inSection(a.sources)).sort((a, b) => a.user.localeCompare(b.user));
+  const cnt = { ok: 0, err: 0, wait: 0, now: 0 };
+  for (const a of inSec) cnt[accState(a)]++;
+  if (ACCF && !(cnt[ACCF] || (ACCF === "wait" && cnt.now))) ACCF = "";
+  const chips = [["", "toate stările", inSec.length, ""], ["ok", "merg", cnt.ok, "okc"], ["err", "cu probleme", cnt.err, "badc"],
+                 ["wait", "în așteptare", cnt.wait + cnt.now, ""]].filter(([k, , n]) => !k || n);
+  $("accStats").hidden = inSec.length < 1;
+  $("accStats").innerHTML = chips.map(([k, label, n, cls]) =>
+      `<button class="chip ${cls}" data-af="${k}" aria-pressed="${ACCF === k}">${label}<span class="n">${n}</span></button>`).join("") +
+    (cnt.err ? `<button class="btn small" id="retryErr" title="Verifică din nou acum conturile cu probleme">Reîncearcă-le acum</button>` : "");
+  const accs = inSec.filter(a => { const st = accState(a); return !ACCF || st === ACCF || (ACCF === "wait" && st === "now"); });
+  ul.innerHTML = accs.map(a => {
+    let sub, cls = "";
+    const st = accState(a);
+    if (st === "now") { sub = "se verifică acum…"; cls = "now"; }
+    else if (st === "err") {
+      const hard = a.retry_at && a.retry_at - (a.last_check || 0) > 6 * 3600;
+      sub = a.error + (a.retry_at ? " · mai încerc la " + hm(a.retry_at) : "");
+      cls = hard ? "bad" : "warn";
+    }
+    else if (st === "wait") sub = "în așteptare";
+    else { const n = DAY_N[(a.user || "").toLowerCase()] || 0;
+      sub = `verificat ${ago(a.last_check, S.now)} · ${n === 1 ? "un clip" : n + " " + de(n) + "clipuri"} în 24 h` + (a.new_last ? ` · ${a.new_last} noi` : "") +
+        (a.hold_until && a.hold_until > S.now ? ` · îl reiau la ${hm(a.next)}` : ""); }
+    if (a.followers != null) sub = big(a.followers) + " urmăritori · " + sub;
+    return `<li class="acc" data-user="${esc(a.user)}">
+      <a class="aname" href="https://www.tiktok.com/@${encodeURIComponent(a.user)}" target="_blank" rel="noopener">@${esc(a.user)}${a.name && a.name !== a.user ? ` <span class="meta">${esc(a.name)}</span>` : ""}</a>
+      <button class="btn ghost iconbtn" data-act="check" title="Verifică acum" aria-label="Verifică @${esc(a.user)} acum">↻</button>
+      <button class="btn ghost iconbtn" data-act="remove" title="Scoate din radar" aria-label="Scoate @${esc(a.user)}">×</button>
+      <div class="asub ${cls}">${esc(sub)}</div></li>`;
+  }).join("") || `<li class="empty">Niciun cont încă.</li>`;
+  const sel = $("fAcc"), cur = PENDING_ACC != null ? PENDING_ACC : sel.value;
+  PENDING_ACC = null;
+  // the account filter lists the accounts of the section on screen
+  sel.innerHTML = `<option value="">toate conturile</option>` + inSec.map(a => `<option value="${esc(a.user)}">@${esc(a.user)}</option>`).join("");
+  sel.value = inSec.some(a => a.user === cur) ? cur : "";
+  const secs = S.accounts.length * 4.5 / (S.workers || 2);
+  $("roundHint").textContent = S.accounts.length > 20
+    ? `Cu ${S.accounts.length} conturi, o tură durează cam ${Math.ceil(secs / 60)} min (merge cu pauze, ca TikTok să nu blocheze).`
+    : "Prea des poate face TikTok să blocheze temporar verificările.";
+  $("accHint").textContent = S.accounts.length ? "Clipurile se verifică singure, cât e programul pornit." : "";
+}
+
+function renderSegs() {
+  $("segInterval").innerHTML = S.intervals.map(h => `<button data-v="${h}" aria-pressed="${h === S.interval_h}">${h} ${h === 1 ? "oră" : "ore"}</button>`).join("");
+  $("segPer").innerHTML = S.per_choices.map(n => `<button data-v="${n}" aria-pressed="${n === S.per_account}">${n}</button>`).join("");
+  $("segHot").innerHTML = (S.hot_choices || []).map(n => `<button data-v="${n}" aria-pressed="${n === S.hot_per_hour}">${n ? big(n) : "oprit"}</button>`).join("");
+  $("segWorkers").innerHTML = (S.worker_choices || [1, 2, 3, 4]).map(n => `<button data-v="${n}" aria-pressed="${n === S.workers}" title="${n === 1 ? "cel mai sigur" : n === 4 ? "cel mai rapid" : "rapid"}">${n}</button>`).join("");
+  // (an older program running does not know this option: it shows after the program is started again)
+  $("onlyNewRow").hidden = !("only_new" in S);
+  $("onlyNew").checked = !!S.only_new;
+  $("holdH").textContent = S.hold_h || 6;
+}
+
+// ---------------- filters (remembered in this browser)
+const FKEYS = ["fPeriod", "fFrom", "fTo", "fSort", "fAcc", "fVmin", "fVmax", "fLmin", "fCmin", "fSmin", "fSvmin", "fRmin",
+               "fEmin", "fDur", "fH1", "fH2", "fText", "fNew", "fHot", "fNotDl", "fHidden"];
+const BKEYS = ["bestN", "bestCap", "bestSkipDl"];
+let VIEW = "all";                 // "all" or "best"
+const SEL = new Set();            // selected clip ids
+let SHOWN_IDS = [];               // clips on screen, in order
+const FDEFAULT = { fPeriod: "24", fSort: "new", fH1: "0", fH2: "24" };
+const MORE = ["fVmax", "fLmin", "fCmin", "fSmin", "fSvmin", "fRmin", "fEmin", "fDur", "fText"];
+let PENDING_ACC = null;
+for (let h = 0; h < 24; h++) $("fH1").add(new Option(String(h).padStart(2, "0") + ":00", String(h)));
+for (let h = 1; h <= 24; h++) $("fH2").add(new Option(String(h).padStart(2, "0") + ":00", String(h)));
+$("fH2").value = "24";
+function fget(id) { const e = $(id); return e.type === "checkbox" ? e.checked : e.value; }
+function fset(id, v) { const e = $(id); if (e.type === "checkbox") e.checked = !!v; else e.value = v; }
+function saveFilters() {
+  const o = { more: !$("moreFilters").hidden, view: VIEW };
+  for (const k of FKEYS.concat(BKEYS)) o[k] = fget(k);
+  try { localStorage.setItem("radarFilters", JSON.stringify(o)); } catch (e) {}
+}
+function loadFilters() {
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem("radarFilters") || "null"); } catch (e) {}
+  if (!o || typeof o !== "object") return;
+  for (const k of FKEYS.concat(BKEYS)) if (k in o && k !== "fAcc") fset(k, o[k]);
+  if (!$("bestN").value) $("bestN").value = "60";
+  if (!$("bestCap").value) $("bestCap").value = "3";
+  VIEW = o.view === "best" ? "best" : "all";
+  if (!$("fPeriod").value) $("fPeriod").value = "24";      // (a choice over 24 h saved before: the Radar keeps only the last day)
+  if (!$("fSort").value) $("fSort").value = "new";
+  PENDING_ACC = typeof o.fAcc === "string" ? o.fAcc : null;
+  showMore(!!o.more);
+}
+function showMore(on) { $("moreFilters").hidden = !on; $("moreBtn").setAttribute("aria-expanded", String(on)); }
+// "100k", "1,5M", "10.000", "2500" -> number; "" -> null (no filter); anything else -> marked red, ignored
+function num(id) {
+  const e = $(id), t = e.value.trim().toLowerCase().replace(/\s/g, "");
+  let x = null, m;
+  if (t) {
+    if ((m = t.match(/^(\d+(?:[.,]\d+)?)([km])$/))) x = parseFloat(m[1].replace(",", ".")) * (m[2] === "k" ? 1e3 : 1e6);
+    else if (/^\d{1,3}([.,]\d{3})+$/.test(t)) x = +t.replace(/[.,]/g, "");
+    else if (/^\d+(?:[.,]\d+)?$/.test(t)) x = parseFloat(t.replace(",", "."));
+    else x = NaN;
+  }
+  const bad = Number.isNaN(x);
+  e.classList.toggle("invalid", bad);
+  e.setAttribute("aria-invalid", bad ? "true" : "false");
+  return bad ? null : x;
+}
+function filterUi() {
+  const custom = $("fPeriod").value === "custom";
+  document.querySelectorAll("[data-custom]").forEach(e => { e.hidden = !custom; });
+  const nMore = MORE.filter(k => fget(k)).length + ($("fH1").value !== "0" || $("fH2").value !== "24" ? 1 : 0);
+  $("moreBtn").innerHTML = "Mai multe filtre" + (nMore ? ` <span class="n">(${nMore})</span>` : "");
+  const changed = FKEYS.some(k => { const v = fget(k); return k in FDEFAULT ? v !== FDEFAULT[k] : !!v; });
+  $("resetF").hidden = !changed;
+}
+const eng = v => v.views ? (v.likes || 0) * 100 / v.views : 0;
+const rateOf = v => (v.recent ?? v.per_hour) || 0;
+function filtered(unsorted) {
+  const now = S.now, per = $("fPeriod").value;
+  let lo = now - (+per || 24) * 3600, hi = Infinity;
+  if (per === "custom") {
+    const from = Date.parse($("fFrom").value), to = Date.parse($("fTo").value);
+    lo = Number.isFinite(from) ? from / 1000 : 0;
+    hi = Number.isFinite(to) ? to / 1000 + 59 : Infinity;
+  }
+  const showHidden = $("fHidden").checked;
+  let vs = S.videos.filter(v => v.ts && v.ts >= lo && v.ts <= hi && inSection(v.sources) && (showHidden || !v.hidden));
+  const inPeriod = vs.length;
+  const acc = $("fAcc").value;
+  if (acc) vs = vs.filter(v => (v.user || "").toLowerCase() === acc.toLowerCase());
+  if ($("fNew").checked) vs = vs.filter(v => v.new);
+  if ($("fHot").checked) vs = vs.filter(v => v.hot_at);
+  if ($("fNotDl").checked) vs = vs.filter(v => !v.file && !(v.dl && v.dl.state === "done"));
+  const lim = [["fVmin", v => v.views || 0, 1], ["fVmax", v => v.views || 0, -1], ["fLmin", v => v.likes || 0, 1],
+               ["fCmin", v => v.comments || 0, 1], ["fSmin", v => v.shares || 0, 1], ["fSvmin", v => v.saves || 0, 1],
+               ["fRmin", rateOf, 1], ["fEmin", eng, 1]];
+  for (const [id, f, dir] of lim) {
+    const x = num(id);
+    if (x != null) vs = vs.filter(v => dir > 0 ? f(v) >= x : f(v) <= x);
+  }
+  const d = $("fDur").value;
+  if (d) {
+    const [a, b] = d.split("-");
+    vs = vs.filter(v => v.dur != null && v.dur >= (+a || 0) && (b === "" || v.dur < +b));
+  }
+  const h1 = +$("fH1").value, h2 = +$("fH2").value;
+  if (h1 !== 0 || h2 !== 24) {
+    vs = vs.filter(v => {
+      const h = new Date(v.ts * 1000).getHours();
+      return h1 < h2 ? h >= h1 && h < h2 : h >= h1 || h < h2;     // 22:00 – 06:00 goes over midnight
+    });
+  }
+  const q = $("fText").value.trim().toLowerCase().replace(/^@/, "");
+  if (q) vs = vs.filter(v => (v.desc || "").toLowerCase().includes(q) || (v.user || "").toLowerCase().includes(q));
+  if (unsorted) return { vs, inPeriod };
+  const key = { new: v => v.ts || 0, old: v => -(v.ts || 0), views: v => v.views || 0, rate: rateOf,
+                likes: v => v.likes || 0, comments: v => v.comments || 0, shares: v => v.shares || 0,
+                saves: v => v.saves || 0, eng, long: v => v.dur || 0, short: v => -(v.dur || 1e9) }[$("fSort").value] || (v => v.ts || 0);
+  vs.sort((a, b) => key(b) - key(a) || (b.ts || 0) - (a.ts || 0));
+  return { vs, inPeriod };
+}
+
+const MAX_ROWS = 300;
+
+// "Cele mai bune": every clip that passes the filters gets a score from its rank among them (0..1):
+// growth per hour 40%, views 30%, engagement 20% (likes + 2·comments + 3·shares + 3·saves per view, smoothed so a
+// clip with few views can't win on luck), freshness 10%; then at most N per account, the best N in all.
+function bestPick(vs) {
+  const n = vs.length;
+  if (!n) return [];
+  const engRaw = v => (v.likes || 0) + 2 * (v.comments || 0) + 3 * (v.shares || 0) + 3 * (v.saves || 0);
+  let tv = 0, te = 0;
+  for (const v of vs) { tv += v.views || 0; te += engRaw(v); }
+  const mean = tv ? te / tv : 0, K = 2000;
+  const engS = v => (engRaw(v) + K * mean) / ((v.views || 0) + K);
+  const rank = f => {
+    const arr = vs.map((v, i) => [f(v), i]).sort((x, y) => x[0] - y[0]);
+    const r = new Float64Array(n);
+    arr.forEach(([, i], j) => { r[i] = n > 1 ? j / (n - 1) : 1; });
+    return r;
+  };
+  const rV = rank(v => Math.log1p(v.views || 0)), rR = rank(rateOf), rE = rank(engS);
+  const now = S.now;
+  const sc = vs.map((v, i) => {
+    const age = Math.max(0, (now - (v.ts || now)) / 3600);
+    return { v, s: 0.4 * rR[i] + 0.3 * rV[i] + 0.2 * rE[i] + 0.1 / (1 + age / 168), rV: rV[i], rR: rR[i], rE: rE[i], age };
+  });
+  sc.sort((a, b) => b.s - a.s || (b.v.views || 0) - (a.v.views || 0));
+  const N = +$("bestN").value || 60, cap = +$("bestCap").value || 0, per = {}, out = [];
+  for (const x of sc) {
+    const u = (x.v.user || "").toLowerCase();
+    if (cap && (per[u] || 0) >= cap) continue;
+    per[u] = (per[u] || 0) + 1;
+    out.push(x);
+    if (out.length >= N) break;
+  }
+  return out;
+}
+function whyOf(x) {
+  const w = [], v = x.v;
+  if (x.rR >= 0.8) w.push("crește repede");
+  if (x.rV >= 0.8) w.push("foarte vizionat");
+  if (x.rE >= 0.8) w.push(((v.shares || 0) + (v.saves || 0)) * 100 / Math.max(1, v.views || 0) >= 1 ? "mult distribuit" : "mult apreciat");
+  if (x.age < 3) w.push("nou");
+  return w;
+}
+const isDl = v => !!(v.file || (v.dl && v.dl.state === "done"));
+const isBusyDl = v => !!(v.dl && (v.dl.state === "queued" || v.dl.state === "running"));
+
+function rowHtml(x, rank) {
+  const v = x.v, now = S.now, rate = v.recent ?? v.per_hour, dl = v.dl || {}, on = SEL.has(v.id);
+  let act;
+  if (isDl(v)) act = `<button class="btn small ok" disabled>În clipuri ✓</button><div class="dlmsg" title="${esc(v.file || dl.msg)}">${esc(v.file || dl.msg)}</div>`;
+  else if (isBusyDl(v)) act = `<button class="btn small" disabled>${dl.state === "running" ? "Se descarcă…" : "În coadă…"}</button>`;
+  else act = `<button class="btn small primary" data-dl="${esc(v.id)}">Descarcă pentru dublat</button>` +
+             (dl.state === "error" ? `<div class="dlmsg bad">${esc(dl.msg)}</div>` : "");
+  act += v.hidden ? `<button class="linkbtn" data-unhide="${esc(v.id)}">Arată din nou</button>`
+                  : `<button class="linkbtn" data-hide="${esc(v.id)}" title="Nu-l mai arăta în liste">Ascunde</button>`;
+  const e = v.views ? nf1.format(eng(v)) : null;
+  const why = rank ? whyOf(x) : [];
+  return `<li class="vid ${v.new ? "isnew" : ""} ${on ? "sel" : ""} ${v.hidden ? "ishidden" : ""}" data-id="${esc(v.id)}">
+      <label class="pick"><input type="checkbox" data-pick="${esc(v.id)}" ${on ? "checked" : ""} aria-label="Selectează clipul lui @${esc(v.user)}"></label>
+      <a class="tlink" href="${esc(v.url)}" target="_blank" rel="noopener" title="Deschide pe TikTok">${v.thumb ? `<img class="thumb" src="${esc(v.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb'}))">` : `<div class="thumb"></div>`}</a>
+      <div class="vmain">
+        <div class="vtop">${rank ? `<span class="rank">#${rank}</span>` : ""}${v.new ? `<span class="badge">NOU</span>` : ""}${v.hot_at ? `<span class="badge hotb" title="a trecut de ${big(S.hot_per_hour || 0)} vizualizări pe oră">EXPLODEAZĂ</span>` : ""}<span class="who">@${esc(v.user)}</span>
+          <span class="when">${esc(when(v.ts))}</span><span class="ago">${esc(ago(v.ts, now))}${v.dur ? " · durată " + dur(v.dur) : ""}</span></div>
+        <div class="desc">${esc(v.desc) || "<i>fără descriere</i>"}</div>
+        ${why.length ? `<div class="why">${why.map(w => `<span>${esc(w)}</span>`).join("")}</div>` : ""}
+        <div><a class="linkbtn" href="${esc(v.url)}" target="_blank" rel="noopener">Deschide pe TikTok</a></div>
+      </div>
+      <div class="stats tnum">
+        <div class="stat"><b>${big(v.views)}</b><span>vizualizări</span></div>
+        <div class="stat" ${e != null ? `title="${e} like-uri la 100 de vizualizări"` : ""}><b>${big(v.likes)}</b><span>like-uri</span></div>
+        <div class="stat"><b>${big(v.comments)}</b><span>comentarii</span></div>
+        <div class="stat"><b>${big(v.shares)}</b><span>distribuiri</span></div>
+        <div class="stat"><b>${big(v.saves)}</b><span>salvări</span></div>
+        <div class="stat ${rate >= 5000 ? "hot" : ""}" title="${v.recent != null ? "vizualizări pe oră, între ultimele verificări" : "vizualizări pe oră de la postare"}"><b>${big(rate)}</b><span>viz./oră</span></div>
+      </div>
+      <div class="vact">${act}</div></li>`;
+}
+
+function renderVideos() {
+  lastVideos = Date.now();
+  filterUi();
+  const best = VIEW === "best";
+  let { vs, inPeriod } = filtered(best);
+  let rows, total;
+  if (best) {
+    if ($("bestSkipDl").checked) vs = vs.filter(v => !isDl(v));
+    rows = bestPick(vs);
+    total = rows.length;
+    $("vidCount").textContent = rows.length ? `cele mai bune ${rows.length} din ${vs.length} clipuri` : "";
+  } else {
+    total = vs.length;
+    rows = vs.slice(0, MAX_ROWS).map(v => ({ v }));
+    const nNew = vs.filter(v => v.new).length;
+    $("vidCount").textContent = total ? `${total} clipuri` + (total < inPeriod ? ` din ${inPeriod}` : "") + (nNew ? ` · ${nNew} noi` : "")
+                                      : (inPeriod ? `0 din ${inPeriod}` : "");
+  }
+  SHOWN_IDS = rows.map(x => x.v.id);
+  $("vids").innerHTML = rows.map((x, k) => rowHtml(x, best ? k + 1 : 0)).join("") +
+      (!best && total > MAX_ROWS ? `<li class="more-rows">Arăt primele ${MAX_ROWS} din ${total}. Restrânge filtrele ca să le vezi pe celelalte.</li>` : "")
+    || `<li class="empty">${S.accounts.length ? (S.videos.length ? (inPeriod ? "Niciun clip nu trece de filtrele alese." : "Niciun clip postat în perioada aleasă.") : "Încă nu am clipuri: prima verificare durează puțin.") : "Adaugă conturi în stânga și apar aici clipurile lor recente."}</li>`;
+  renderSel();
+  renderBest(rows);
+}
+
+function renderSel() {
+  const n = SEL.size, shownSel = SHOWN_IDS.filter(id => SEL.has(id)).length;
+  $("selCount").textContent = n ? `${n} selectate` : "";
+  for (const id of ["selDl", "selHide", "selCopy"]) $(id).disabled = !n;
+  $("selNone").hidden = !n;
+  $("selDl").textContent = n ? `Descarcă selectate (${n})` : "Descarcă selectate";
+  const all = $("selAll");
+  all.checked = SHOWN_IDS.length > 0 && shownSel === SHOWN_IDS.length;
+  all.indeterminate = shownSel > 0 && shownSel < SHOWN_IDS.length;
+  all.disabled = !SHOWN_IDS.length;
+}
+
+function renderBest(rows) {
+  const best = VIEW === "best";
+  $("bestBar").hidden = !best;
+  document.querySelectorAll("#viewSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === VIEW)));
+  $("fSort").disabled = best;
+  $("fSort").title = best ? "În „Cele mai bune” ordinea e după scor" : "";
+  if (!best) return;
+  const todo = rows.filter(x => !isDl(x.v) && !isBusyDl(x.v)).length;
+  $("bestDl").disabled = !todo;
+  $("bestDl").textContent = todo ? `Descarcă-le pe toate (${todo})` : (rows.length ? "Toate sunt descărcate sau în coadă" : "Descarcă-le pe toate");
+}
+
+// polling: the server answers {same:true} with only the live part when nothing changed since REV
+let REV = null, lastVideos = 0, lastFull = 0;
+async function refresh(full) {
+  let j;
+  try {
+    if (S && !full) {
+      const L = await (await fetch("/api/radar?live=1", { cache: "no-store" })).json();
+      S.busy = L.busy; S.tool = L.tool; S.now = L.now; S.dl = L.dl || S.dl;
+      if (L.progress) S.progress = L.progress;
+      const hotNews = (L.hot_last || 0) > (S.hot_last || 0);   // a clip just exploded: fetch it now
+      if (!hotNews && (L.rev === REV || ((L.busy || []).length && Date.now() - lastFull < 30000))) {
+        renderStatus(); renderAccounts();
+        if (Date.now() - lastVideos > 60000) renderVideos();   // only the "acum X min" texts change
+        return;
+      }
+    }
+    j = await (await fetch("/api/radar", { cache: "no-store" })).json();
+  } catch (e) {
+    $("status").innerHTML = "<span class='bad'>Programul de dublare nu răspunde. Pornește-l din nou cu Porneste dublarea.bat.</span>";
+    return;
+  }
+  S = j; REV = j.rev; lastFull = Date.now();
+  if (SEL.size) { const ids = new Set(S.videos.map(v => v.id)); for (const id of [...SEL]) if (!ids.has(id)) SEL.delete(id); }
+  render();
+}
+function render() {
+  if (!S) return;
+  $("oldApp").hidden = S.app_version === RADAR_VERSION;
+  renderStatus(); renderHot(); renderSections(); renderAccounts(); renderSegs(); renderVideos();
+}
+
+// ---------------- events
+$("addBtn").addEventListener("click", async () => {
+  const j = await api({ action: "add", user: $("addInput").value });
+  if (j.error) flash($("addMsg"), j.error, true); else { $("addInput").value = ""; flash($("addMsg"), "Adăugat. Îl verific acum.", false); }
+});
+$("addInput").addEventListener("keydown", e => { if (e.key === "Enter") $("addBtn").click(); });
+$("bulkBtn").addEventListener("click", async () => {
+  const source = $("bulkSource").value.trim(), replace = $("bulkReplace").checked;
+  if (source && replace) {          // removes accounts: show what changes first, sync only on "Sincronizează"
+    if (await previewIncoming({ source, text: $("bulkInput").value, replace: true })) $("bulkInput").value = "";
+    return;
+  }
+  const j = await api({ action: "add_many", text: $("bulkInput").value, source, replace: false });
+  if (j.error) return flash($("importMsg"), j.error, true);
+  $("bulkInput").value = "";
+  if (j.sync) { flash($("importMsg"), `@${j.sync.source}: ${j.sync.total} conturi urmărite · ${j.sync.added} noi · ${j.sync.removed} scoase.`, false); setSection(j.sync.source); }
+  else flash($("importMsg"), `Am adăugat ${j.added} conturi` + (j.already ? ` (${j.already} erau deja)` : "") + ".", false);
+});
+$("sections").addEventListener("click", e => { const b = e.target.closest("button[data-sec]"); if (b) setSection(b.dataset.sec); });
+$("syncInfo").addEventListener("click", e => {
+  if (e.target.id === "dropSection" && confirm(`Scot secțiunea ${secName(SECTION)}? Conturile care nu sunt și în altă secțiune ies din radar.`)) {
+    api({ action: "remove_all", source: SECTION }); setSection("");
+  }
+});
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", async () => {
+  const f = $("importFile").files[0]; if (!f) return;
+  flash($("importMsg"), "Citesc fișierul…", false);
+  try {
+    const r = await fetch("/api/radar-import?name=" + encodeURIComponent(f.name), { method: "POST", body: await f.arrayBuffer() });
+    const j = await r.json();
+    if (j.error) flash($("importMsg"), j.error, true);
+    else {
+      flash($("importMsg"), `În fișier: ${j.found} conturi urmărite` + (j.source ? ` de @${j.source}` : "") +
+        `. Am adăugat ${j.added}` + (j.already ? `, ${j.already} erau deja.` : "."), false);
+      await refresh(true);
+      if (j.source) setSection(j.source);
+    }
+  } catch (e) { flash($("importMsg"), "Nu am putut citi fișierul.", true); }
+  $("importFile").value = ""; refresh(true);
+});
+$("accs").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const user = b.closest("li").dataset.user;
+  if (b.dataset.act === "remove") {
+    const where = SECTION ? `din secțiunea ${secName(SECTION)}` : "din radar";
+    if (confirm(`Scot @${user} ${where}?`)) api({ action: "remove", user, source: SECTION || null });
+  }
+  else api({ action: "check", user });
+});
+$("removeAll").addEventListener("click", () => { if (confirm("Scot toate conturile din radar?")) api({ action: "remove_all" }); });
+$("checkAll").addEventListener("click", () => api({ action: "check" }));
+$("segInterval").addEventListener("click", e => { const b = e.target.closest("button"); if (b) api({ action: "settings", interval_h: +b.dataset.v }); });
+$("segPer").addEventListener("click", e => { const b = e.target.closest("button"); if (b) api({ action: "settings", per_account: +b.dataset.v }); });
+$("segHot").addEventListener("click", e => { const b = e.target.closest("button"); if (b) api({ action: "settings", hot_per_hour: +b.dataset.v }); });
+$("hotTest").addEventListener("click", async () => {
+  const b = $("hotTest");
+  b.disabled = true;
+  flash($("hotMsg"), "Trimit o notificare de probă…", false);
+  const j = await post({ action: "notify_test" });
+  b.disabled = false;
+  if (j.ok) flash($("hotMsg"), "Ți-am trimis o notificare în colțul din dreapta jos. Dacă nu apare, în Windows: Setări → Sistem → Notificări, pornește notificările (și pe cele de la Windows PowerShell).", false);
+  else flash($("hotMsg"), "Windows nu a arătat notificarea: " + (j.error || "eroare"), true);
+});
+$("vids").addEventListener("click", e => {
+  const b = e.target.closest("button[data-dl],button[data-hide],button[data-unhide]");
+  if (!b) return;
+  b.disabled = true;
+  if (b.dataset.dl) api({ action: "download", ids: [b.dataset.dl] });
+  else if (b.dataset.hide) { SEL.delete(b.dataset.hide); api({ action: "hide", ids: [b.dataset.hide] }); }
+  else api({ action: "hide", ids: [b.dataset.unhide], hidden: false });
+});
+$("vids").addEventListener("change", e => {
+  const c = e.target.closest("input[data-pick]");
+  if (!c) return;
+  if (c.checked) SEL.add(c.dataset.pick); else SEL.delete(c.dataset.pick);
+  c.closest("li").classList.toggle("sel", c.checked);
+  renderSel();
+});
+$("selAll").addEventListener("change", () => {
+  const on = $("selAll").checked;
+  for (const id of SHOWN_IDS) { if (on) SEL.add(id); else SEL.delete(id); }
+  renderVideos();
+});
+$("selNone").addEventListener("click", () => { SEL.clear(); renderVideos(); });
+function selVideos() { const byId = new Map(S.videos.map(v => [v.id, v])); return [...SEL].map(id => byId.get(id)).filter(Boolean); }
+$("selDl").addEventListener("click", async () => {
+  const vs = selVideos(), ids = vs.filter(v => !isDl(v) && !isBusyDl(v)).map(v => v.id);
+  const j = ids.length ? await api({ action: "download", ids }) : { ok: true, queued: 0 };
+  const skip = vs.length - (j.queued || 0);
+  flash($("selMsg"), j.ok ? `Am pus ${j.queued} clipuri la descărcat` + (skip ? ` (${skip} erau deja descărcate sau în coadă)` : "") + ". Le găsești în folderul clipuri, gata de dublat."
+                          : (j.error || "Nu a mers."), !j.ok);
+  SEL.clear(); renderVideos();
+});
+$("selHide").addEventListener("click", async () => {
+  const ids = [...SEL];
+  await api({ action: "hide", ids });
+  flash($("selMsg"), `Am ascuns ${ids.length} clipuri. Le vezi din nou bifând „arată și cele ascunse”.`, false);
+  SEL.clear(); renderVideos();
+});
+$("selCopy").addEventListener("click", async () => {
+  const order = new Map(SHOWN_IDS.map((id, i) => [id, i]));
+  const text = selVideos().sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9)).map(v => v.url).join("\n");
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+  }
+  flash($("selMsg"), ok ? `Am copiat ${SEL.size} linkuri.` : "Nu am putut copia linkurile.", !ok);
+});
+$("bestDl").addEventListener("click", async () => {
+  const byId = new Map(S.videos.map(v => [v.id, v]));
+  const ids = SHOWN_IDS.map(id => byId.get(id)).filter(v => v && !isDl(v) && !isBusyDl(v)).map(v => v.id);
+  if (!ids.length || !confirm(`Descarc ${ids.length} clipuri în folderul clipuri, ca să le dublezi?`)) return;
+  const j = await api({ action: "download", ids });
+  flash($("selMsg"), j.ok ? `Am pus ${j.queued} clipuri la descărcat (câte 2 deodată). Le găsești în folderul clipuri, gata de dublat.` : (j.error || "Nu a mers."), !j.ok);
+});
+$("viewSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-view]");
+  if (!b) return;
+  VIEW = b.dataset.view;
+  saveFilters();
+  if (S) renderVideos();
+});
+for (const id of BKEYS) $(id).addEventListener("change", () => { saveFilters(); if (S) renderVideos(); });
+$("seenAll").addEventListener("click", () => api({ action: "mark_seen" }));
+$("openClips").addEventListener("click", async () => {
+  const j = await post({ action: "open_clips" });
+  if (!j.ok) $("status").innerHTML = "<span class='bad'>" + esc(j.error || "Nu pot deschide folderul.") + "</span>";
+});
+$("dlStat").addEventListener("click", e => { if (e.target.id === "dlCancel") api({ action: "dl_cancel" }); });
+$("hotList").addEventListener("click", e => {
+  const b = e.target.closest("button[data-hdl]");
+  if (b) { b.disabled = true; api({ action: "download", ids: [b.dataset.hdl] }); }
+});
+$("hotSeen").addEventListener("click", () =>         // (only what was shown: one that came meanwhile stays)
+  api({ action: "hot_seen", upto: hotUnseen().reduce((m, v) => Math.max(m, v.hot_at), 0) || null }));
+$("hotShow").addEventListener("click", () => {
+  // all sections, the whole day, no other filter: exactly the clips of the box
+  for (const k of FKEYS) fset(k, k in FDEFAULT ? FDEFAULT[k] : (k === "fNew" || k === "fNotDl" ? false : ""));
+  document.querySelectorAll(".filters input.invalid").forEach(e => { e.classList.remove("invalid"); e.setAttribute("aria-invalid", "false"); });
+  if (SECTION) setSection("");
+  fset("fHot", true);
+  if (VIEW !== "all") { const t = document.querySelector('[data-view="all"]'); if (t) t.click(); }
+  saveFilters(); filterUi(); renderVideos();
+  const p = document.querySelector('section[aria-label="Clipuri"]'); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("accStats").addEventListener("click", e => {
+  const c = e.target.closest("[data-af]");
+  if (c) { ACCF = c.dataset.af; renderAccounts(); }
+  else if (e.target.id === "retryErr") { e.target.disabled = true; api({ action: "check", only_errors: true }); }
+});
+$("segWorkers").addEventListener("click", e => { const b = e.target.closest("button"); if (b) api({ action: "settings", workers: +b.dataset.v }); });
+$("onlyNew").addEventListener("change", e => api({ action: "settings", only_new: e.target.checked }));
+$("sbar").addEventListener("click", e => {
+  if (e.target.id === "holdOff") { e.target.disabled = true; api({ action: "check" }); }
+});
+let fTimer = 0;
+function onFilter(now) {
+  clearTimeout(fTimer);
+  fTimer = setTimeout(() => { saveFilters(); if (S) renderVideos(); else filterUi(); }, now ? 0 : 200);
+}
+for (const id of FKEYS) {
+  const e = $(id);
+  e.addEventListener("change", () => onFilter(true));
+  if (e.tagName === "INPUT" && e.type !== "checkbox") e.addEventListener("input", () => onFilter(false));
+}
+$("moreBtn").addEventListener("click", () => { showMore($("moreFilters").hidden); saveFilters(); });
+$("resetF").addEventListener("click", () => {
+  for (const k of FKEYS) fset(k, k in FDEFAULT ? FDEFAULT[k] : (k === "fNew" || k === "fNotDl" ? false : ""));
+  document.querySelectorAll(".filters input.invalid").forEach(e => { e.classList.remove("invalid"); e.setAttribute("aria-invalid", "false"); });
+  onFilter(true);
+});
+loadFilters();
+filterUi();
+// ---------------- back to the app (the page also opens on top of the app, in a frame)
+let SHOWN = true;
+window.addEventListener("message", e => {
+  if (e.origin === location.origin && e.data && e.data.radar === "shown") { SHOWN = true; refresh(); }
+});
+$("back").addEventListener("click", () => {
+  if (window.parent !== window) { SHOWN = false; window.parent.postMessage({ radar: "close" }, location.origin); }
+  else location.href = "/";
+});
+
+// ---------------- a "Following" list brought from TikTok by the button: /radar#sync=<json>
+// Anyone could open such a link, so nothing changes until you press "Sincronizează" here.
+let INCOMING = null;
+function showIncoming(html, bad, ask) {
+  $("inText").innerHTML = html;
+  document.querySelector(".incoming").classList.toggle("bad", !!bad);
+  $("inYes").hidden = !ask;
+  $("inNo").textContent = ask ? "Renunță" : "Închide";
+  $("incoming").hidden = false;
+}
+async function takeIncoming() {
+  const h = location.hash || "";
+  if (!h.startsWith("#sync=")) return;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  let d = null;
+  try { d = JSON.parse(decodeURIComponent(h.slice(6))); } catch (e) {}
+  if (!d || typeof d !== "object" || !Array.isArray(d.users) || !d.users.length) {
+    INCOMING = null;
+    return showIncoming("Lista venită de pe TikTok e goală sau s-a stricat pe drum. Apasă din nou butonul pe TikTok.", true, false);
+  }
+  await previewIncoming({ source: String(d.source || ""), users: d.users, replace: d.replace === true,
+                          shown: Number.isFinite(d.shown) ? d.shown : null, tiktok: true });
+}
+async function previewIncoming(inc) {
+  INCOMING = inc;
+  showIncoming("Citesc lista…", false, false);
+  window.scrollTo({ top: 0 });
+  const j = await post({ action: "sync", dry: true, ...inc });
+  if (!j.ok) { INCOMING = null; showIncoming(esc(j.error || "Nu am putut citi lista."), true, false); return false; }
+  const s = j.sync;
+  showIncoming(`${inc.tiktok ? "Urmăririle" : "Lista"} lui <b>@${esc(s.source)}</b>${inc.tiktok ? ", aduse de pe TikTok" : ", lipită de tine"}: ` +
+    `<b>${s.total}</b> conturi · <b>${s.added}</b> noi` +
+    (inc.replace ? ` · <b>${s.removed}</b> ies din secțiune` + (s.removed ? " (nu mai sunt în listă)" : "") :
+      `<div class="hint">Doar adaug, nu scot nimic${inc.shown ? ` (TikTok arată ${inc.shown} urmăriri)` : ""}.</div>`),
+    false, true);
+  $("inYes").focus();
+  return true;
+}
+$("inYes").addEventListener("click", async () => {
+  if (!INCOMING) return;
+  $("inYes").disabled = true;
+  const j = await post({ action: "sync", dry: false, ...INCOMING });
+  $("inYes").disabled = false;
+  const fromTikTok = !!INCOMING.tiktok;          // the button brings every account's followers too
+  INCOMING = null;
+  if (!j.ok) return showIncoming(esc(j.error || "Nu a mers."), true, false);
+  const s = j.sync;
+  const holdH = (S && S.hold_h) || 6;
+  showIncoming(`Gata. <b>@${esc(s.source)}</b>: ${s.total} conturi urmărite · ${s.added} noi · ${s.removed} scoase. ` +
+    (fromTikTok ? "Numărul de urmăritori e actualizat la toate. " : "") +
+    (s.held ? `Verific acum doar conturile noi; celelalte ${s.held} au fost verificate de curând și le reiau în ` +
+              `cel mult ${holdH} ore.` : s.added ? "Le verific pe rând." : ""), false, false);
+  await refresh(true);
+  setSection(s.source);
+});
+$("inNo").addEventListener("click", () => { INCOMING = null; $("incoming").hidden = true; });
+window.addEventListener("hashchange", takeIncoming);
+
+// ---------------- the button for the bookmarks bar. On tiktok.com, with the "Following" list open, it
+// scrolls the list to the end, collects every @account (and its followers, from the list TikTok loads),
+// then opens this page with the list in the address (#sync=...). TikTok's page may not send anything to
+// this computer by itself (its security rules block it), but it may open a new tab.
+const BM = String.raw`void (async()=>{
+const G=window.__radarDub;
+if(G&&G.running){G.box.style.outline='3px solid #ff7a2f';return;}
+if(G&&G.box)G.box.remove();
+const APP='__APP__';
+const W=ms=>new Promise(r=>setTimeout(r,ms));
+const own=(location.pathname.match(/^\/@([\w.]+)/)||[])[1]||'';
+const names=new Map();
+let apiTotal=0,complete=false,shown=null,approx=false,sc=null,root=null,tabT='';
+const add=(u,f)=>{u=String(u||'').replace(/^@/,'');if(!/^[\w.]{2,40}$/.test(u)||u.toLowerCase()===own.toLowerCase())return;const k=u.toLowerCase(),o=names.get(k);if(!o)names.set(k,[u,f==null?null:f]);else if(f!=null)o[1]=f;};
+const prof=h=>{const m=String(h||'').match(/^(?:https?:\/\/(?:www\.|m\.)?tiktok\.com)?\/@([\w.]+)\/?(?:[?#].*)?$/);return m?m[1]:null;};
+const walk=(o,d)=>{if(!o||typeof o!=='object'||d>7)return;if(Array.isArray(o)){for(const x of o)walk(x,d+1);return;}const u=o.user;if(u&&typeof u==='object'&&typeof u.uniqueId==='string'){const s=o.stats||o.statsV2||{};const f=s.followerCount;add(u.uniqueId,f==null||f===''||isNaN(+f)?null:+f);return;}for(const k in o)walk(o[k],d+1);};
+const eat=t=>{try{const j=typeof t==='string'?JSON.parse(t):t;if(j&&typeof j.total==='number')apiTotal=Math.max(apiTotal,j.total);walk(j,0);}catch(e){}};
+const isList=u=>/\/api\/user\/list\b/.test(String(u||''));
+const F0=window.fetch,S0=XMLHttpRequest.prototype.send;
+const F1=function(){const p=F0.apply(window,arguments);try{p.then(r=>{try{if(r&&isList(r.url))r.clone().text().then(eat,()=>{});}catch(e){}},()=>{});}catch(e){}return p;};
+const S1=function(){try{this.addEventListener('load',()=>{try{if(isList(this.responseURL))eat(this.responseType===''||this.responseType==='text'?this.responseText:this.response);}catch(e){}});}catch(e){}return S0.apply(this,arguments);};
+const hook=()=>{window.fetch=F1;XMLHttpRequest.prototype.send=S1;};
+const unhook=()=>{if(window.fetch===F1)window.fetch=F0;if(XMLHttpRequest.prototype.send===S1)XMLHttpRequest.prototype.send=S0;};
+const el=(t,css,txt)=>{const e=document.createElement(t);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;return e;};
+const box=el('div','all:initial;display:block;position:fixed;z-index:2147483647;top:16px;left:50%;transform:translateX(-50%);width:min(460px,92vw);box-sizing:border-box;background:#1b1917;color:#f4efe9;border:1px solid #ffb27d;border-radius:14px;padding:16px 18px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.55);text-align:left');
+const title=el('div','font-weight:800;font-size:15px;margin:0 0 6px','Radar · urmăririle tale');
+const st=el('div','margin:0','Caut lista de urmăriri...');
+const note=el('div','display:none;font-size:12.5px;color:#ffc24b;margin-top:8px');
+const lab=el('label','display:none;margin-top:10px;font-size:12.5px;color:#b8afa5','Lista e a profilului:');
+const inp=el('input','display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border-radius:9px;border:1px solid #36312c;background:#121110;color:#f4efe9;font:inherit');
+inp.value=own?'@'+own:'';inp.placeholder='@contul.meu';lab.append(inp);
+const row=el('div','display:flex;gap:8px;flex-wrap:wrap;margin-top:12px');
+const msg=el('div','font-size:12.5px;color:#b8afa5;margin-top:10px');
+const dg=el('div','display:none;margin-top:10px;font:11px/1.35 Consolas,monospace;color:#7f766d;word-break:break-all;max-height:110px;overflow:auto');
+const btn=(t,k,primary)=>{const b=el('button',(primary?'background:#ff7a2f;color:#1d0c00;border:0;font-weight:700;':'background:transparent;color:#f4efe9;border:1px solid #36312c;font-weight:500;')+'padding:7px 14px;border-radius:9px;cursor:pointer;font-family:inherit;font-size:14px;line-height:1.3;margin:0',t);b.dataset.rd=k;return b;};
+const show=(...bs)=>row.replaceChildren(...bs);
+const say=(t,c)=>{msg.textContent=t;msg.style.color=c||'#b8afa5';};
+box.append(title,st,note,lab,row,msg,dg);document.body.appendChild(box);
+const state={box:box,running:true,stopped:false,done:false};window.__radarDub=state;
+const tkData=()=>{try{return JSON.parse(document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__').textContent).__DEFAULT_SCOPE__||{};}catch(e){return {};}};
+const secOf=()=>{if(!own)return '';const ok=u=>!!u&&typeof u.secUid==='string'&&u.secUid.length>20&&String(u.uniqueId||'').toLowerCase()===own.toLowerCase();
+const fc=document.querySelector('[data-e2e="following-count"]');
+if(fc){const k=Object.keys(fc).find(x=>x.indexOf('__reactFiber')===0);let f=k?fc[k]:null;const seen=new Set();
+const scan=(o,d)=>{if(!o||typeof o!=='object'||d>4||seen.has(o))return '';seen.add(o);if(ok(o))return o.secUid;for(const kk of Object.keys(o).slice(0,60)){let r='';try{r=scan(o[kk],d+1);}catch(e){}if(r)return r;}return '';};
+for(let i=0;i<40&&f;i++){const r=scan(f.memoizedProps,0);if(r)return r;f=f.return;}}
+const ud=tkData()['webapp.user-detail'];const u=ud&&ud.userInfo&&ud.userInfo.user;return ok(u)?u.secUid:'';};
+let apiInfo='';
+const viaApi=async()=>{const sec=secOf();if(!sec){apiInfo='api: fara secUid';return false;}
+const ctx=tkData()['webapp.app-context']||{};
+const base={aid:'1988',app_language:ctx.language||'en',app_name:'tiktok_web',browser_language:navigator.language||'en',browser_name:'Mozilla',browser_online:'true',browser_platform:navigator.platform||'Win32',channel:'tiktok_web',cookie_enabled:'true',count:'30',device_id:String(ctx.wid||''),device_platform:'web_pc',focus_state:'true',from_page:'user',is_fullscreen:'false',is_page_visible:'true',os:'windows',priority_region:ctx.region||'',region:ctx.region||'',scene:'21',secUid:sec,user_is_login:'true',webcast_language:ctx.language||'en'};
+let cur='0',pages=0,fails=0,dry=0,end=false,why='';
+show(btn('Oprește aici','stop'),btn('Anulează','close'));
+while(pages<400&&box.isConnected&&!state.stopped){
+st.textContent='Iau lista de urmăriri de la TikTok... '+names.size+(apiTotal?' din '+apiTotal:'')+' conturi.';
+let j=null;try{const r=await fetch('/api/user/list/?'+new URLSearchParams(Object.assign({},base,{maxCursor:'0',minCursor:cur})),{credentials:'include'});j=JSON.parse(await r.text());}catch(e){j=null;}
+if(!j||!Array.isArray(j.userList)){if(++fails>=3){why='pagina '+(pages+1)+' fara raspuns';break;}await W(1200*fails);continue;}
+fails=0;pages++;const before=names.size;eat(j);dry=names.size>before?0:dry+1;
+const nx=j.minCursor==null?'':String(j.minCursor);
+if(!j.hasMore||!nx||nx===cur){end=true;break;}
+if(dry>=3)break;
+cur=nx;await W(300);}
+apiInfo='api: pagini='+pages+' total='+apiTotal+' '+(why||(end?'capat':dry>=3?'fara conturi noi':'oprit'));
+return names.size>0;};
+const finish=()=>{unhook();window.removeEventListener('click',onClick,true);box.remove();state.running=false;state.stopped=true;if(window.__radarDub===state)delete window.__radarDub;};
+const send=()=>{const src=inp.value.trim().replace(/^https?:\/\/(www\.)?tiktok\.com\//,'').replace(/^@/,'').replace(/[\/?#].*$/,'');if(!/^[\w.]{2,40}$/.test(src)){say('Scrie numele profilului a cărui listă e (ex. @contul.meu).','#ff5c7f');inp.focus();return;}const data={v:2,source:src,replace:complete,shown:shown,users:[...names.values()]};let w=null;try{w=window.open(APP+'/radar#sync='+encodeURIComponent(JSON.stringify(data)),'radar_dublare');}catch(e){}if(w)say('Am deschis Radarul într-o filă nouă. Confirmă acolo cu „Sincronizează”.','#5fd39c');else say('Browserul a blocat fila nouă. Permite ferestrele pop-up pentru tiktok.com (iconița din dreapta barei de adrese) și apasă din nou, sau folosește „Copiază lista”.','#ff5c7f');};
+const copy=()=>{const t=[...names.values()].map(x=>'@'+x[0]).join('\n');const done=ok=>say(ok?'Am copiat '+names.size+' conturi. În Radar: „Ia toate conturile pe care le urmărești” → „Sau lipește o listă”.':'Nu am putut copia lista.',ok?'#5fd39c':'#ff5c7f');const old=()=>{let ok=false;try{const ta=el('textarea','position:fixed;left:-9999px;top:0');ta.value=t;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e){}done(ok);};try{navigator.clipboard.writeText(t).then(()=>done(true),old);}catch(e){old();}};
+const onClick=e=>{const b=e.target&&e.target.closest?e.target.closest('[data-rd]'):null;if(!b||!box.contains(b))return;e.stopPropagation();e.preventDefault();const k=b.dataset.rd;if(k==='stop')state.stopped=true;else if(k==='done')state.done=true;else if(k==='close')finish();else if(k==='send')send();else if(k==='copy')copy();else if(k==='more')collect(true);};
+window.addEventListener('click',onClick,true);
+const vis=e=>!!(e&&e.getClientRects&&e.getClientRects().length);
+const nLinks=r=>{const s=new Set();r.querySelectorAll('a[href*="/@"]').forEach(a=>{const u=prof(a.getAttribute('href'));if(u&&u.toLowerCase()!==own.toLowerCase())s.add(u.toLowerCase());});return s.size;};
+const scrollers=r=>[r,...r.querySelectorAll('*')].filter(e=>!box.contains(e)&&e.scrollHeight>e.clientHeight+20&&/(auto|scroll|overlay)/.test(getComputedStyle(e).overflowY));
+const pick=list=>{let b=null,bn=0;for(const e of list){const n=nLinks(e);if(n>bn){b=e;bn=n;}}return b?[b,bn]:null;};
+const grab=()=>root.querySelectorAll('a[href*="/@"]').forEach(a=>{const u=prof(a.getAttribute('href'));if(u)add(u,null);});
+const plinks=()=>[...root.querySelectorAll('a[href*="/@"]')].filter(a=>prof(a.getAttribute('href'))&&vis(a));
+const lastL=()=>{const l=plinks();return l.length?l[l.length-1]:null;};
+const lastU=()=>{const l=lastL();return l?prof(l.getAttribute('href')):'';};
+const scOf=()=>{let e=lastL();while(e&&e!==document.documentElement){if(e!==document.body&&e.scrollHeight>e.clientHeight+10&&/(auto|scroll|overlay)/.test(getComputedStyle(e).overflowY))return e;e=e.parentElement;}return null;};
+const num=t=>{t=String(t||'').trim().toUpperCase().replace(/\s/g,'');const m=t.match(/([\d.,]+)([KM])?/);if(!m)return null;if(m[2])return [Math.round(parseFloat(m[1].replace(',','.'))*(m[2]==='K'?1e3:1e6)),true];return [parseInt(m[1].replace(/[.,]/g,''),10),false];};
+const readShown=()=>{shown=null;approx=false;const ce=document.querySelector('[data-e2e="following-count"]');let r=ce?num(ce.textContent):null;if(!r&&/\d/.test(tabT))r=num(tabT);if(r&&r[0]>=0){shown=r[0];approx=r[1];}if(shown==null&&apiTotal>0)shown=apiTotal;};
+const step=()=>{let moved=false;if(sc&&sc.isConnected){const b=sc.scrollTop;sc.scrollTop=b+Math.max(240,Math.floor(sc.clientHeight*0.9));moved=sc.scrollTop>b+1;}const l=lastL();if(l){if(!moved){try{l.scrollIntoView({block:'end'});}catch(e){}}try{l.dispatchEvent(new WheelEvent('wheel',{deltaY:900,bubbles:true,cancelable:true,view:window}));}catch(e){}}return moved;};
+const diag=()=>{const out=[];let e=lastL(),i=0;while(e&&e!==document.documentElement&&i<16){const cs=getComputedStyle(e);const cn=(typeof e.className==='string'?e.className:'').split(/\s+/).map(x=>x.split('-').pop()).filter(x=>/^[A-Z]/.test(x))[0]||'';out.push(e.tagName.toLowerCase()+(cn?'.'+cn:'')+(e.getAttribute('role')?'[r='+e.getAttribute('role')+']':'')+(e.getAttribute('data-e2e')?'[e='+e.getAttribute('data-e2e')+']':'')+' '+cs.overflowY.slice(0,2)+' '+e.scrollHeight+'/'+e.clientHeight);e=e.parentElement;i++;}return 'sc='+(sc?sc.tagName.toLowerCase()+' '+Math.round(sc.scrollTop)+'/'+sc.scrollHeight:'-')+' api='+apiTotal+' n='+names.size+' | '+out.join(' < ');};
+const result=()=>{
+const n=names.size;
+if(!n){st.textContent='Nu am găsit niciun cont în listă. Deschide lista Urmărești (pe profilul tău) și apasă din nou butonul.';show(btn('Închide','close'));return;}
+const fits=shown!=null&&(approx?n>=shown*0.9&&n<=shown*1.12:n>=shown*0.95-2&&n<=shown*1.05+2);
+complete=!state.stopped&&fits;
+st.textContent='Am găsit '+n+' conturi urmărite'+(shown!=null?' (TikTok arată '+(approx?'cam ':'')+shown+')':'')+'.';
+if(!complete){note.style.display='block';note.textContent=(state.stopped?'Te-ai oprit înainte de capătul listei':shown==null?'Nu văd câte urmăriri arată TikTok':n>shown?'Am găsit mai multe conturi decât arată TikTok; poate e altă listă':'Lista pare incompletă')+', așa că în Radar doar adaug conturile, nu scot nimic.'+(shown&&n<shown?(root?' Cu „Derulez eu lista” aduni și restul.':' Apasă din nou butonul ca să încerc încă o dată.'):'');dg.style.display='block';dg.textContent='info pentru reparat (v3): '+(root?diag()+' ':'')+apiInfo;}
+else{note.style.display='none';dg.style.display='none';}
+lab.style.display='block';
+say('Se deschide Radarul într-o filă nouă; acolo apeși „Sincronizează”. Programul de dublare trebuie să fie pornit.');
+const bs=[btn('Trimite în Radar','send',true)];
+if(!complete&&shown&&n<shown&&root)bs.push(btn('Derulez eu lista','more'));
+bs.push(btn('Copiază lista','copy'),btn('Închide','close'));
+show(...bs);
+};
+const collect=async manual=>{
+state.running=true;state.stopped=false;state.done=false;hook();
+note.style.display='none';lab.style.display='none';dg.style.display='none';say('');
+readShown();grab();
+sc=scOf()||sc;
+let idle=0,lastN=names.size,lastLast=lastU(),everMoved=false;const t0=Date.now();
+const manualUi=()=>{show(btn('Gata, am ajuns la capăt','done',true),btn('Anulează','close'));say('Ține mouse-ul pe listă și derulează cu rotița până jos. Eu adun conturile pe măsură ce apar.');};
+if(manual)manualUi();else show(btn('Oprește aici','stop'),btn('Anulează','close'));
+while(box.isConnected&&!state.stopped&&!state.done&&Date.now()-t0<1800000){
+if(manual){st.textContent='Derulează tu lista până la capăt. Am adunat '+names.size+(shown?' din '+shown:'')+' conturi.';await W(400);grab();if(shown&&!approx&&names.size>=shown)break;continue;}
+st.textContent='Derulez lista de urmăriri... '+names.size+(shown?' din '+shown:'')+' conturi găsite.';
+if(!sc||!sc.isConnected)sc=scOf();
+const moved=step();if(moved)everMoved=true;
+await W(moved?350:900);grab();
+let prog=names.size>lastN||lastU()!==lastLast;
+if(!prog){await W(1300);grab();prog=names.size>lastN||lastU()!==lastLast;}
+if(prog){idle=0;everMoved=true;lastN=names.size;lastLast=lastU();}else idle++;
+if(!everMoved&&idle>=3){manual=true;manualUi();continue;}
+if(idle>=6)break;
+}
+if(!box.isConnected)return;
+await W(300);grab();unhook();readShown();state.running=false;result();
+};
+if(await viaApi()){if(!box.isConnected)return;readShown();state.running=false;result();return;}
+if(!box.isConnected)return;
+if(state.stopped){state.running=false;result();return;}
+let fb=null;
+for(const p of document.querySelectorAll('[data-e2e="follow-info-popup"],[role="dialog"],[aria-modal="true"]')){if(!vis(p)||box.contains(p))continue;const ss=scrollers(p);const b=pick(ss);if(b){root=p;sc=b[0];break;}if(nLinks(p)>0){root=p;break;}if(!fb&&ss.length)fb=[p,ss.sort((x,y)=>(y.scrollHeight-y.clientHeight)-(x.scrollHeight-x.clientHeight))[0]];}
+if(!root&&fb){root=fb[0];sc=fb[1];}
+if(!root){if(own){st.textContent='Nu am putut lua lista direct de la TikTok. Pe profil apasă pe Urmărești (numărul de conturi urmărite), apoi apasă din nou butonul.';dg.style.display='block';dg.textContent='info pentru reparat (v3): '+apiInfo;}else st.textContent='Deschide întâi profilul tău pe TikTok, apoi apasă din nou butonul.';show(btn('Închide','close'));state.running=false;return;}
+tabT=(()=>{const t=root.querySelector('[role="tab"][aria-selected="true"],[aria-selected="true"]');return t?(t.textContent||'').trim().toLowerCase():'';})();
+if(/urmăritori|urmaritori|follower|prieten|friend|propus|sugera|suggest/.test(tabT)){st.textContent='E deschisă altă listă ('+tabT.slice(0,30)+'). Apasă pe fila Urmărești și apoi din nou pe buton.';show(btn('Închide','close'));state.running=false;return;}
+await collect(false);
+})();`;
+const BM_URL = "javascript:" + encodeURIComponent(BM.replace("__APP__", location.origin));
+$("bookmarklet").href = BM_URL;
+$("bookmarklet").addEventListener("click", e => {
+  e.preventDefault();
+  flash($("bmMsg"), "Nu-l apăsa aici: trage-l cu mouse-ul în bara de favorite, apoi apasă-l pe TikTok, pe profilul tău.", false);
+});
+$("bmCopy").addEventListener("click", async () => {
+  let ok = false;
+  try { await navigator.clipboard.writeText(BM_URL); ok = true; } catch (e) {
+    const ta = document.createElement("textarea"); ta.value = BM_URL; document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+  }
+  flash($("bmMsg"), ok ? "Am copiat butonul. Click dreapta pe bara de favorite → Adaugă pagină… → Nume: Radar, URL: lipești (Ctrl+V) → Salvează."
+                       : "Nu am putut copia. Încearcă să tragi butonul.", !ok);
+});
+$("bmOther").textContent = `Pe TikTok intri din alt browser? Deschide în acela adresa ${location.origin}/radar (cu programul pornit) și trage butonul de acolo.`;
+
+refresh();
+takeIncoming();
+setInterval(() => { if (!document.hidden && SHOWN) refresh(); }, 8000);
+</script>
+</body>
+</html>

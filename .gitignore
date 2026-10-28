@@ -1,0 +1,71 @@
+# Repo PUBLIC - aici NU intra niciodata date personale.
+# Fisierele de mai jos raman doar pe calculatorul fiecarui utilizator.
+
+# setari si chei (fiecare le pune pe calculatorul lui)
+setari*.json
+actualizare.json
+modele_descarcare.json
+.versiune_anterioara
+
+# datele si munca utilizatorului
+conturi*.json
+cheltuieli.json
+radar.json
+capcut_finalizate.json
+viteza_voce.json
+gpu_nvenc.json
+povestiri/
+clipuri/
+capcut_de_tradus/
+capcut_traduse/
+capcut_final/
+jurnal_voce/
+backup_*/
+
+# modele AI si binare mari
+modele/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+*.engine
+*.trt
+*.plan
+
+# media
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.aac
+*.ogg
+
+# arhive / aplicatii
+*.zip
+*.7z
+*.rar
+*.apk
+*.apks
+*.xapk
+*.aab
+*.obb
+
+# medii Python / cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# node
+node_modules/
+
+# dumpuri din aplicatia de postare
+tiktok_bot/studio/runs/
+tiktok_bot/**/dump/
+*.jsonl

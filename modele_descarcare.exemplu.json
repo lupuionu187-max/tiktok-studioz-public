@@ -1,0 +1,5 @@
+{
+  "_ajutor": "Copiaza ca 'modele_descarcare.json'. Lansatorul descarca aceste fisiere o singura data, daca lipsesc. Optional.",
+  "modele/numele_modelului.pt": "https://link-direct-de-descarcare",
+  "modele/alt_model.onnx": "https://alt-link-direct"
+}

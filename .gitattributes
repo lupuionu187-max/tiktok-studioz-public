@@ -1,0 +1,2 @@
+# fisierele .bat trebuie sa aiba capete de linie Windows ca sa mearga in cmd
+*.bat text eol=crlf

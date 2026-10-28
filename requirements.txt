@@ -1,0 +1,48 @@
+# ============================================================
+#  TikTok Studioz - dependinte Python
+#  Generat automat din importurile din cod (28.10.2026).
+#  Instalare:  pip install -r requirements.txt
+#  Recomandat: foloseste un mediu virtual (venv) - lansatorul il face singur.
+# ============================================================
+
+# ---- De baza (interfata + motor dublare) --------------------
+numpy
+Pillow
+requests
+urllib3
+PyYAML
+soundfile
+faster-whisper        # transcriere (Whisper)
+anthropic             # agentul AI (Claude)
+playwright            # vmake / automatizari browser (ruleaza si: python -m playwright install chromium)
+
+# ---- Aplicatia de postare TikTok (folderul tiktok_bot) ------
+Flask
+Werkzeug
+selenium
+uiautomator2          # control telefon Android (ADB)
+"ruamel.yaml"
+
+# ============================================================
+#  GREU / GPU - NU se instaleaza simplu cu "pip install".
+#  Ai nevoie de placa video NVIDIA + drivere CUDA potrivite.
+#  Instaleaza torch DUPA ce alegi versiunea CUDA de pe:
+#     https://pytorch.org/get-started/locally/
+#  Exemplu (CUDA 12.1):
+#     pip install torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu121
+# ------------------------------------------------------------
+# torch
+# torchaudio
+# torchvision
+
+# ---- Upscale TensorRT (optional, doar trt_esr.py) -----------
+# Acestea cer o instalare NVIDIA specifica, in ordine; vezi documentatia NVIDIA.
+# onnx
+# tensorrt
+
+# ============================================================
+#  NU sunt pachete pip (trebuie instalate separat pe calculator):
+#    - FFmpeg           -> https://ffmpeg.org/  (adaugat in PATH)
+#    - Git              -> https://git-scm.com/ (necesar pentru auto-update)
+#    - ADB / platform-tools (doar daca postezi de pe telefon)
+# ============================================================

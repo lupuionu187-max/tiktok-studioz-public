@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikTok Studioz</title>
+<meta name="description" content="Aplicația de dublare și postare — rulează pe calculatorul tău, cu resursele tale.">
+<style>
+  :root{
+    --bg:#121110; --panel:#1b1917; --card:#24211e; --line:#3a352f;
+    --txt:#f3ece3; --dim:#b8aea2; --accent:#ff7a1a; --ok:#4ad07d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:40px 16px 80px}
+  header{text-align:center;padding:32px 0 16px}
+  .logo{font:800 34px/1 "Bricolage Grotesque",Inter,sans-serif;letter-spacing:-.5px}
+  .logo span{color:var(--accent)}
+  .tag{color:var(--dim);margin-top:10px;font-size:17px}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:28px 0 8px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:12px;
+    font-weight:800;text-decoration:none;font-size:16px;border:1px solid transparent}
+  .btn-primary{background:var(--accent);color:#120d08}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-ghost{background:transparent;color:var(--txt);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .note{text-align:center;color:var(--dim);font-size:14px;margin-top:6px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 26px;margin:22px 0}
+  h2{font:800 20px/1.2 "Bricolage Grotesque",Inter,sans-serif;margin:0 0 14px}
+  ol{margin:0;padding-left:22px} li{margin:10px 0}
+  code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:14px}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .cell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .cell b{color:var(--accent)}
+  footer{text-align:center;color:var(--dim);font-size:13px;margin-top:40px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">TikTok <span>Studioz</span></div>
+    <div class="tag">Dublezi, montezi și postezi — totul pe calculatorul tău, cu resursele tale.</div>
+    <div class="cta">
+      <a class="btn btn-primary" href="ui.html">▶ Deschide aplicația</a>
+      <a class="btn btn-ghost" href="#instalare">⬇ Prima dată? Instalează motorul</a>
+    </div>
+    <div class="note">Interfața se vede de oriunde. Ca să și <b>lucreze</b>, trebuie să ai motorul pornit pe calculatorul tău.</div>
+  </header>
+
+  <section>
+    <h2>Cum funcționează</h2>
+    <div class="grid">
+      <div class="cell"><b>1. Interfața</b><br>E pe acest site și e mereu la zi. O deschizi din browser.</div>
+      <div class="cell"><b>2. Motorul</b><br>Îl instalezi o dată pe calculatorul tău. El face treaba grea (GPU, voce, montaj).</div>
+      <div class="cell"><b>3. Actualizările</b><br>Se iau automat la fiecare pornire. Nu descarci nimic manual.</div>
+    </div>
+  </section>
+
+  <section id="instalare">
+    <h2>Instalare (o singură dată)</h2>
+    <ol>
+      <li>Instalează <a href="https://git-scm.com/download/win">Git</a> și <a href="https://www.python.org/downloads/">Python</a> (bifează „Add to PATH").</li>
+      <li>Descarcă aplicația cu o comandă (în <code>cmd</code>), în folderul unde o vrei:
+        <pre>git clone https://github.com/UTILIZATORUL/tiktok-studioz-public.git</pre>
+      </li>
+      <li>Intră în folder și pornește <code>Porneste aplicatia.bat</code>. La prima pornire își pune singur ce lipsește.</li>
+      <li>Pune-ți cheile tale (RunPod / Vast / Gemini) și parola în <b>Setări</b>. Cheile tale rămân doar la tine.</li>
+      <li>Gata. De aici, <b>Deschide aplicația</b> de pe acest site — se conectează la motorul tău local.</li>
+    </ol>
+    <p class="note">Pentru funcțiile de voce / upscale ai nevoie de o placă video NVIDIA și de <code>torch</code> (lansatorul îți arată comanda potrivită).</p>
+  </section>
+
+  <footer>
+    TikTok Studioz · rulează local, pe resursele tale · codul: pe GitHub
+  </footer>
+</div>
+</body>
+</html>
