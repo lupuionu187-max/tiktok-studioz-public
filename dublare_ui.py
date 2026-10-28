@@ -4194,6 +4194,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.command == "OPTIONS" or (self.headers.get("X-Parola") or "") == parola:
             self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.send_header("Vary", "Origin")
 
     def end_headers(self):

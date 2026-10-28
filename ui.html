@@ -2980,7 +2980,9 @@ zp.addEventListener("pointerup", (e) => {
   const view = $("rdView"), frame = $("rdFrame");
   $("radarBtn").addEventListener("click", () => {
     view.hidden = false;
-    if (!frame.getAttribute("src")) frame.src = "/radar";
+    // local: pagina /radar servita de motor (acelasi domeniu). De pe site: radar.html gazduit
+    // (are shim-ul de conectare) - motorul nu permite sa fie pus in iframe de pe alt domeniu.
+    if (!frame.getAttribute("src")) frame.src = (window.TS && !window.TS.local) ? "radar.html" : "/radar";
     else try { frame.contentWindow.postMessage({ radar: "shown" }, location.origin); } catch (e) {}
   });
   window.addEventListener("message", e => {
